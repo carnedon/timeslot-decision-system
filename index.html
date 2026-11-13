@@ -817,7 +817,7 @@
     const STORAGE_KEY_GAS_URL = 'interstellar_timeslot_gas_url_v1';
 
     // 若已部署 Google Apps Script Web App，可在此填入預設網址或透過管理後台設定
-    const DEFAULT_GAS_WEB_APP_URL = '';
+    const DEFAULT_GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxhTmAsqIv0Bz8C0S0sRTO5LmdBsK2wlhNzrPZPock39sbxe-XaAHJEdTsw2LNeYiY/exec';
 
     let currentUser = null;
     let activeTab = 'vote';
@@ -1000,8 +1000,13 @@
       if (urlInput && gasWebAppUrl) urlInput.value = gasWebAppUrl;
 
       if (gasWebAppUrl) {
+        updateSyncBadge(true, 'GSheet 已連線');
+        const statusText = document.getElementById('gasConnectionStatusText');
+        if (statusText) {
+          statusText.textContent = '已內建綁定 Google Apps Script 試算表端點，自動雲端同步中';
+        }
         await syncFromGoogleSheet(false);
-        setInterval(() => syncFromGoogleSheet(false), 12000);
+        setInterval(() => syncFromGoogleSheet(false), 8000);
       }
 
       try {

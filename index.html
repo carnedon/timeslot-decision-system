@@ -1,0 +1,2304 @@
+<!DOCTYPE html>
+<html lang="zh-TW" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>時段決策系統 — 開會時間搶奪大賽 (20分鐘天課)</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;800&family=Noto+Sans+TC:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <!-- Tone.js for subtle cosmic audio feedback -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Noto Sans TC"', 'sans-serif'],
+            serif: ['"Cinzel"', '"Noto Sans TC"', 'serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            cosmos: {
+              950: '#04060d',
+              900: '#080c1a',
+              800: '#101730',
+              700: '#1b264f',
+            },
+            starlight: {
+              gold: '#e6c687',
+              champagne: '#f7e7ce',
+              amber: '#d4af37',
+              cyan: '#38bdf8',
+              nebula: '#818cf8'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    :root {
+      --glass-bg: rgba(15, 23, 42, 0.38);
+      --glass-bg-heavy: rgba(10, 15, 30, 0.68);
+      --glass-bg-light: rgba(255, 255, 255, 0.08);
+      --glass-blur: blur(20px);
+      --glass-blur-strong: blur(32px);
+      --glass-blur-light: blur(10px);
+      --glass-border: 1px solid rgba(255, 255, 255, 0.18);
+      --glass-radius: 18px;
+      --glass-radius-lg: 26px;
+      --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.45), inset 0 1px 0 0 rgba(255, 255, 255, 0.14);
+      --glass-shadow-elevated: 0 20px 50px rgba(0, 0, 0, 0.65), inset 0 1px 0 0 rgba(255, 255, 255, 0.22);
+    }
+
+    body {
+      background-color: #03050a;
+      color: #f1f5f9;
+      overflow-x: hidden;
+      min-height: 100vh;
+    }
+
+    /* Glassmorphism Core Classes */
+    .glass-panel {
+      background: rgba(10, 15, 30, 0.88);
+      border: var(--glass-border);
+      border-radius: var(--glass-radius-lg);
+      box-shadow: var(--glass-shadow-elevated);
+    }
+
+    .glass-card {
+      background: rgba(15, 23, 42, 0.82);
+      border: var(--glass-border);
+      border-radius: var(--glass-radius);
+      box-shadow: var(--glass-shadow);
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .glass-btn {
+      background: var(--glass-bg-light);
+      border: var(--glass-border);
+      border-radius: 12px;
+      box-shadow: var(--glass-shadow);
+      transition: all 0.25s ease;
+    }
+
+    .glass-btn:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: rgba(230, 198, 135, 0.5);
+      transform: translateY(-1px);
+    }
+
+    .glass-modal-backdrop {
+      background: rgba(3, 5, 10, 0.65);
+      backdrop-filter: var(--glass-blur-light);
+      -webkit-backdrop-filter: var(--glass-blur-light);
+    }
+
+    .glass-modal {
+      background: var(--glass-bg-heavy);
+      backdrop-filter: var(--glass-blur-strong);
+      -webkit-backdrop-filter: var(--glass-blur-strong);
+      border: var(--glass-border);
+      border-radius: var(--glass-radius-lg);
+      box-shadow: var(--glass-shadow-elevated);
+    }
+
+    @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+      .glass-panel {
+        background: var(--glass-bg-heavy);
+        backdrop-filter: var(--glass-blur-strong);
+        -webkit-backdrop-filter: var(--glass-blur-strong);
+      }
+      .glass-card {
+        background: var(--glass-bg);
+        backdrop-filter: var(--glass-blur);
+        -webkit-backdrop-filter: var(--glass-blur);
+      }
+      .glass-btn {
+        backdrop-filter: var(--glass-blur-light);
+        -webkit-backdrop-filter: var(--glass-blur-light);
+      }
+    }
+
+    @media (prefers-reduced-transparency: reduce) {
+      .glass-panel, .glass-card, .glass-modal, .glass-btn {
+        background: #0b1124 !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+      }
+    }
+
+    @media (prefers-contrast: more) {
+      .glass-panel, .glass-card, .glass-modal, .glass-btn {
+        border: 1.5px solid #e6c687 !important;
+      }
+    }
+
+    .glass-card:hover {
+      border-color: rgba(230, 198, 135, 0.45);
+      box-shadow: 0 12px 36px -6px rgba(212, 175, 55, 0.2), inset 0 1px 0 0 rgba(255, 255, 255, 0.22);
+      transform: translateY(-2px);
+    }
+
+    .glass-card-selected {
+      background: linear-gradient(135deg, rgba(212, 175, 55, 0.22) 0%, rgba(15, 23, 42, 0.55) 100%) !important;
+      border: 1.5px solid #e6c687 !important;
+      box-shadow: 0 0 32px rgba(230, 198, 135, 0.28), inset 0 0 16px rgba(230, 198, 135, 0.14) !important;
+    }
+
+    .gold-gradient-text {
+      background: linear-gradient(135deg, #fff6e0 0%, #e6c687 45%, #c59b27 80%, #f7e7ce 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .btn-luxury {
+      background: linear-gradient(135deg, #d4af37 0%, #aa8010 50%, #d4af37 100%);
+      background-size: 200% auto;
+      color: #04060d;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 20px rgba(212, 175, 55, 0.35);
+    }
+
+    .btn-luxury:hover:not(:disabled) {
+      background-position: right center;
+      box-shadow: 0 6px 28px rgba(230, 198, 135, 0.55);
+      transform: translateY(-1px);
+    }
+
+    .btn-luxury:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    @keyframes spinSlow {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    @keyframes spinReverseSlow {
+      from { transform: rotate(360deg); }
+      to { transform: rotate(0deg); }
+    }
+    @keyframes pulseStar {
+      0%, 100% { transform: scale(1); opacity: 0.95; }
+      50% { transform: scale(1.22); opacity: 1; }
+    }
+    @keyframes floatGentle {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-5px); }
+    }
+    .orbit-ring-1 { animation: spinSlow 45s linear infinite; transform-origin: center; }
+    .orbit-ring-2 { animation: spinReverseSlow 30s linear infinite; transform-origin: center; }
+    .astro-spin-cw { animation: spinSlow 18s linear infinite; transform-origin: 60px 60px; }
+    .astro-spin-ccw { animation: spinReverseSlow 12s linear infinite; transform-origin: 60px 60px; }
+    .astro-spin-fast { animation: spinSlow 7s linear infinite; transform-origin: 60px 60px; }
+    .astro-core-pulse { animation: pulseStar 3s ease-in-out infinite; transform-origin: 60px 60px; }
+    .astro-float { animation: floatGentle 4.5s ease-in-out infinite; }
+  </style>
+</head>
+<body class="relative selection:bg-starlight-gold selection:text-cosmos-950">
+
+  <!-- Background Animated Starfield Canvas -->
+  <canvas id="starfieldCanvas" class="fixed inset-0 pointer-events-none z-0"></canvas>
+
+  <!-- Rich Multi-layered Nebula Orbs for Glassmorphism Depth -->
+  <div class="fixed -top-32 -left-32 w-[28rem] h-[28rem] bg-indigo-600/25 rounded-full blur-[130px] pointer-events-none z-0"></div>
+  <div class="fixed top-1/4 -right-28 w-[26rem] h-[26rem] bg-amber-500/15 rounded-full blur-[140px] pointer-events-none z-0"></div>
+  <div class="fixed -bottom-32 left-1/4 w-[30rem] h-[30rem] bg-sky-500/20 rounded-full blur-[135px] pointer-events-none z-0"></div>
+
+  <!-- Main App Wrapper (No Top Header Bar) -->
+  <div class="relative z-10 min-h-screen flex flex-col justify-center max-w-5xl mx-auto px-4 sm:px-6 py-8">
+
+    <!-- Floating Minimal Glass Switcher (Only visible after login) -->
+    <div id="floatingNav" class="hidden mb-6 flex items-center justify-between gap-3 flex-wrap">
+      <div class="glass-card px-4 py-2 rounded-full flex items-center gap-3">
+        <!-- Mini Animated Astronomy Emblem -->
+        <svg class="w-6 h-6 shrink-0" viewBox="0 0 120 120">
+          <circle cx="60" cy="60" r="50" fill="none" stroke="#e6c687" stroke-width="3" stroke-dasharray="6 6" class="astro-spin-cw" opacity="0.75"/>
+          <ellipse cx="60" cy="60" rx="46" ry="20" fill="none" stroke="#38bdf8" stroke-width="2.5" class="astro-spin-ccw" opacity="0.85"/>
+          <g class="astro-spin-fast">
+            <circle cx="106" cy="60" r="5.5" fill="#e6c687"/>
+            <circle cx="14" cy="60" r="4.5" fill="#38bdf8"/>
+          </g>
+          <circle cx="60" cy="60" r="9" fill="#e6c687" class="astro-core-pulse"/>
+        </svg>
+        <i id="headerRoleIcon" class="fa-solid fa-user-astronaut text-starlight-gold text-sm"></i>
+        <span id="headerNickname" class="text-sm sm:text-base font-bold text-starlight-champagne">---</span>
+        <span id="syncBadge" class="w-2 h-2 rounded-full bg-emerald-400" title="資料庫連線狀態"></span>
+        <span id="dbModeLabel" class="text-[10px] font-mono text-emerald-300/90 hidden sm:inline">GSheet DB</span>
+      </div>
+
+      <div class="flex items-center gap-2 flex-wrap">
+        <div class="glass-card p-1 rounded-full flex items-center gap-1">
+          <button id="navTabVote" onclick="switchTab('vote')" class="px-3.5 py-1.5 rounded-full text-xs font-bold tracking-wider transition-all">
+            選擇時段
+          </button>
+          <button id="navTabResults" onclick="switchTab('results')" class="px-3.5 py-1.5 rounded-full text-xs font-bold tracking-wider transition-all">
+            時段結果
+          </button>
+          <button id="navTabAdmin" onclick="switchTab('admin')" class="hidden px-3.5 py-1.5 rounded-full text-xs font-bold tracking-wider transition-all text-amber-300">
+            管理後台
+          </button>
+        </div>
+
+        <button id="soundToggleBtn" onclick="toggleAudio()" title="音效開關" class="w-9 h-9 rounded-full glass-btn flex items-center justify-center text-starlight-gold">
+          <i id="soundIcon" class="fa-solid fa-volume-high text-xs"></i>
+        </button>
+
+        <button onclick="logoutUser()" title="登出系統" class="px-4 py-2 rounded-full glass-btn text-xs font-bold tracking-wider text-slate-200 hover:text-rose-300 flex items-center gap-1.5">
+          <i class="fa-solid fa-right-from-bracket"></i>
+          <span>登出</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- MAIN CONTENT CONTAINER -->
+    <main class="w-full">
+
+      <!-- ==========================================
+           VIEW 1: LOGIN PORTAL (時段決策系統)
+           ========================================== -->
+      <section id="viewLogin" class="py-4">
+        <div class="max-w-md mx-auto glass-panel p-8 sm:p-10 relative overflow-hidden">
+          <div class="absolute -right-20 -top-20 w-56 h-56 rounded-full border border-white/10 orbit-ring-1 pointer-events-none"></div>
+          <div class="absolute -left-16 -bottom-16 w-44 h-44 rounded-full border border-starlight-gold/15 orbit-ring-2 pointer-events-none"></div>
+
+          <div class="relative z-10 text-center space-y-6">
+            <!-- Animated Astronomical Armillary Sphere & Binary Star Logo -->
+            <div class="w-28 h-28 mx-auto relative flex items-center justify-center astro-float">
+              <div class="absolute inset-0 rounded-full bg-amber-400/10 blur-xl pointer-events-none"></div>
+              <svg class="w-28 h-28 overflow-visible" viewBox="0 0 120 120" aria-label="動態天文星盤標誌">
+                <defs>
+                  <radialGradient id="coreStarGrad" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stop-color="#ffffff" />
+                    <stop offset="45%" stop-color="#f7e7ce" />
+                    <stop offset="80%" stop-color="#d4af37" />
+                    <stop offset="100%" stop-color="#d4af37" stop-opacity="0" />
+                  </radialGradient>
+                  <linearGradient id="goldRingGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#f7e7ce" />
+                    <stop offset="50%" stop-color="#d4af37" />
+                    <stop offset="100%" stop-color="#38bdf8" />
+                  </linearGradient>
+                </defs>
+
+                <!-- Outer Celestial Degree Ring (Clockwise) -->
+                <g class="astro-spin-cw">
+                  <circle cx="60" cy="60" r="52" fill="none" stroke="url(#goldRingGrad)" stroke-width="1.4" stroke-dasharray="5 3 1 3" opacity="0.85" />
+                  <circle cx="60" cy="8" r="2.8" fill="#f7e7ce" />
+                  <circle cx="60" cy="112" r="2.2" fill="#38bdf8" />
+                  <circle cx="8" cy="60" r="2.2" fill="#e6c687" />
+                  <circle cx="112" cy="60" r="2.2" fill="#e6c687" />
+                </g>
+
+                <!-- Middle Astrolabe Meridian Ring (Counter-Clockwise) -->
+                <g class="astro-spin-ccw">
+                  <circle cx="60" cy="60" r="41" fill="none" stroke="#38bdf8" stroke-width="1.1" stroke-dasharray="12 6" opacity="0.6" />
+                  <polygon points="60,15 62.5,21 57.5,21" fill="#38bdf8" opacity="0.85" />
+                  <polygon points="60,105 62.5,99 57.5,99" fill="#e6c687" opacity="0.85" />
+                </g>
+
+                <!-- Tilted Elliptical Orbit 1 with Albireo Gold Star -->
+                <g transform="rotate(-28 60 60)">
+                  <ellipse cx="60" cy="60" rx="48" ry="18" fill="none" stroke="#e6c687" stroke-width="1.2" opacity="0.55" />
+                  <circle cx="108" cy="60" r="4" fill="#f7e7ce">
+                    <animateTransform attributeName="transform" type="rotate" from="0 60 60" to="360 60 60" dur="8s" repeatCount="indefinite" />
+                  </circle>
+                </g>
+
+                <!-- Tilted Elliptical Orbit 2 with Albireo Sapphire Companion Star -->
+                <g transform="rotate(32 60 60)">
+                  <ellipse cx="60" cy="60" rx="44" ry="16" fill="none" stroke="#38bdf8" stroke-width="1.2" opacity="0.55" />
+                  <circle cx="16" cy="60" r="3.4" fill="#38bdf8">
+                    <animateTransform attributeName="transform" type="rotate" from="360 60 60" to="0 60 60" dur="6.5s" repeatCount="indefinite" />
+                  </circle>
+                </g>
+
+                <!-- Inner Fast Orbiting Comet -->
+                <g class="astro-spin-fast">
+                  <circle cx="60" cy="60" r="25" fill="none" stroke="#f7e7ce" stroke-width="0.8" stroke-dasharray="2 5" opacity="0.45" />
+                  <circle cx="85" cy="60" r="3" fill="#ffffff" />
+                </g>
+
+                <!-- Central Pulsing Quasar Starburst -->
+                <g class="astro-core-pulse">
+                  <circle cx="60" cy="60" r="16" fill="url(#coreStarGrad)" />
+                  <path d="M60 40 L63 57 L80 60 L63 63 L60 80 L57 63 L40 60 L57 57 Z" fill="#fffdf7" />
+                  <circle cx="60" cy="60" r="4.5" fill="#ffffff" />
+                </g>
+              </svg>
+            </div>
+
+            <div class="space-y-1.5">
+              <p class="text-xs font-mono tracking-[0.25em] text-sky-400">星際觀測站驗證</p>
+              <h1 class="text-3xl sm:text-4xl font-bold gold-gradient-text tracking-wider">時段決策系統</h1>
+              <p class="text-xs text-slate-400 tracking-widest">開會時間搶奪大賽 · 20分鐘天課</p>
+            </div>
+
+            <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4 text-left pt-2">
+              <div>
+                <label for="studentIdInput" class="block text-xs font-mono tracking-widest text-slate-300 mb-2">
+                  請輸入學號
+                </label>
+                <div class="relative">
+                  <span class="absolute inset-y-0 left-0 pl-4 flex items-center text-starlight-gold/70">
+                    <i class="fa-solid fa-user-astronaut"></i>
+                  </span>
+                  <input
+                    id="studentIdInput"
+                    type="text"
+                    inputmode="numeric"
+                    autocomplete="off"
+                    placeholder="輸入您的學號"
+                    class="w-full pl-11 pr-4 py-3.5 rounded-xl bg-black/35 border border-white/20 text-white font-mono text-base tracking-widest placeholder-slate-500 focus:outline-none focus:border-starlight-gold transition-all"
+                  />
+                </div>
+                <p id="loginErrorMsg" class="hidden mt-2 text-xs text-rose-400 flex items-center gap-1.5">
+                  <i class="fa-solid fa-circle-exclamation"></i>
+                  <span>查無此學號，請重新確認</span>
+                </p>
+              </div>
+
+              <button type="submit" class="w-full py-3.5 rounded-xl btn-luxury text-sm tracking-widest flex items-center justify-center gap-2">
+                <span>登入系統</span>
+                <i class="fa-solid fa-arrow-right text-xs"></i>
+              </button>
+            </form>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==========================================
+           VIEW 2: VOTER SELECTION & D30 DIE MODE
+           ========================================== -->
+      <section id="viewVote" class="hidden space-y-5">
+        <!-- Compact Welcome Banner -->
+        <div class="glass-panel p-6 sm:p-7 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div class="space-y-1">
+            <div class="text-[11px] font-mono uppercase tracking-[0.25em] text-starlight-gold" id="welcomeConstellationTag">
+              星際觀測員
+            </div>
+            <h2 class="text-2xl sm:text-3xl font-bold text-white">
+              歡迎，<span id="welcomeNickname" class="gold-gradient-text"></span>
+            </h2>
+            <p id="welcomeSubtext" class="text-xs text-slate-300"></p>
+          </div>
+
+          <div id="voterStatusCard" class="glass-card px-4 py-3 min-w-[200px]"></div>
+        </div>
+
+        <!-- Two-Column Layout -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+
+          <!-- Left Column: The Voter's 2 Voted Slots (7 cols) -->
+          <div class="lg:col-span-7 glass-panel p-6 flex flex-col justify-between space-y-5">
+            <div class="flex items-center justify-between">
+              <div>
+                <span class="text-[10px] font-mono uppercase tracking-widest text-sky-400">STEP 01</span>
+                <h3 class="text-lg font-bold text-white tracking-wider">選擇您的時段</h3>
+              </div>
+              <span id="conflictRuleBadge" class="text-[11px] px-2.5 py-1 rounded-full font-mono"></span>
+            </div>
+
+            <div id="voterSlotCardsContainer" class="grid grid-cols-1 gap-3.5"></div>
+
+            <div class="text-[11px] text-slate-400 flex items-center justify-between pt-2 border-t border-white/10">
+              <span>• 無衝堂時段：選完立即公布</span>
+              <span>• 重疊時段：擲 30 面骰比大小，小者自動分配另一時段</span>
+            </div>
+          </div>
+
+          <!-- Right Column: 30-Sided Die (D30) Arena (5 cols) -->
+          <div class="lg:col-span-5 glass-panel p-6 flex flex-col justify-between relative overflow-hidden">
+            <div class="text-center">
+              <span class="text-[10px] font-mono uppercase tracking-widest text-starlight-gold">STEP 02</span>
+              <h3 class="text-lg font-bold gold-gradient-text tracking-wider">30 面命運星骰</h3>
+            </div>
+
+            <div class="relative my-2 flex items-center justify-center">
+              <svg class="w-60 h-60 absolute pointer-events-none opacity-30 orbit-ring-1" viewBox="0 0 200 200">
+                <circle cx="100" cy="100" r="90" fill="none" stroke="#e6c687" stroke-width="0.6" stroke-dasharray="4 6"/>
+                <circle cx="100" cy="100" r="78" fill="none" stroke="#38bdf8" stroke-width="0.5"/>
+              </svg>
+
+              <canvas id="d30Canvas" width="300" height="300" class="w-60 h-60 cursor-grab active:cursor-grabbing relative z-10"></canvas>
+
+              <div id="d30NumberOverlay" class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-20">
+                <span id="d30SmallLabel" class="text-[10px] font-mono uppercase tracking-[0.25em] text-starlight-champagne/75">D30</span>
+                <span id="d30MainValue" class="text-4xl font-black font-mono gold-gradient-text drop-shadow-[0_4px_20px_rgba(0,0,0,0.95)]">--</span>
+              </div>
+            </div>
+
+            <div class="space-y-3 relative z-10">
+              <div id="d30ResultBanner" class="hidden rounded-xl p-3 text-center border"></div>
+
+              <button
+                id="confirmAndRollBtn"
+                onclick="handleConfirmOrRoll()"
+                disabled
+                class="w-full py-3.5 rounded-xl btn-luxury text-xs sm:text-sm tracking-wider flex items-center justify-center gap-2"
+              >
+                <i class="fa-solid fa-dice-d20"></i>
+                <span id="confirmAndRollBtnText">請先選擇時段</span>
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ==========================================
+           VIEW 3: ALLOCATION RESULTS BOARD (時段分配結果)
+           ========================================== -->
+      <section id="viewResults" class="hidden space-y-5">
+        <div class="glass-panel p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <span class="text-[10px] font-mono uppercase tracking-[0.25em] text-sky-400">開會時間搶奪大賽</span>
+            <h2 class="text-2xl font-bold gold-gradient-text tracking-wider">時段分配結果</h2>
+          </div>
+
+          <div class="flex items-center gap-3">
+            <div class="glass-card px-3.5 py-2 text-center">
+              <div class="text-[10px] font-mono text-slate-400">11/16 (一)</div>
+              <div id="monClusterStatus" class="text-xs font-bold text-emerald-300 font-mono">0 / 2</div>
+            </div>
+            <div class="glass-card px-3.5 py-2 text-center">
+              <div class="text-[10px] font-mono text-slate-400">11/19 (四)</div>
+              <div id="thuClusterStatus" class="text-xs font-bold text-amber-300 font-mono">0 / 4</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <!-- Monday 11/16 Column -->
+          <div class="glass-panel p-5 space-y-3.5">
+            <div class="flex items-center justify-between border-b border-white/10 pb-2.5">
+              <h3 class="font-bold text-sm tracking-wider text-white">11/16 (一) 時段</h3>
+              <span class="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                無衝堂立即公布
+              </span>
+            </div>
+            <div id="mondaySlotsList" class="space-y-2.5"></div>
+          </div>
+
+          <!-- Thursday 11/19 Column -->
+          <div class="glass-panel p-5 space-y-3.5">
+            <div class="flex items-center justify-between border-b border-white/10 pb-2.5">
+              <h3 class="font-bold text-sm tracking-wider text-white">11/19 (四) 時段</h3>
+              <span id="thuHeaderBadge" class="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                全體選完後公布
+              </span>
+            </div>
+            <div id="thursdaySlotsList" class="space-y-2.5"></div>
+          </div>
+        </div>
+
+        <!-- D30 Clash Log -->
+        <div id="d30BattleLogPanel" class="glass-panel p-5 space-y-3">
+          <div class="flex items-center justify-between">
+            <h3 class="text-sm font-bold gold-gradient-text tracking-wider">30 面骰對決結果</h3>
+            <span id="battleLogStatusTag" class="text-[10px] font-mono text-slate-400"></span>
+          </div>
+          <div id="d30BattleLogContent" class="space-y-2.5"></div>
+        </div>
+      </section>
+
+      <!-- ==========================================
+           VIEW 4: ADMIN CONTROL CENTER (管理員後台)
+           ========================================== -->
+      <section id="viewAdmin" class="hidden space-y-5">
+        <div class="glass-panel p-6 sm:p-8 flex flex-col gap-5">
+          <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-white/10 pb-5">
+            <div class="space-y-2">
+              <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-400/30 text-amber-300 text-xs font-bold tracking-widest">
+                <i class="fa-solid fa-crown"></i>
+                <span>管理員後台</span>
+              </div>
+              <h2 class="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white leading-tight tracking-wide">
+                歡迎，<span id="adminWelcomeName" class="gold-gradient-text drop-shadow-[0_2px_18px_rgba(230,198,135,0.4)]"></span>
+              </h2>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2.5 shrink-0">
+              <button onclick="adminSimulateRemaining()" class="px-4 py-2.5 glass-btn text-sky-300 text-xs font-bold flex items-center gap-1.5">
+                <i class="fa-solid fa-wand-magic-sparkles"></i>
+                <span>模擬未完成者</span>
+              </button>
+              <button onclick="adminToggleForceReveal()" id="adminForceRevealBtn" class="px-4 py-2.5 glass-btn text-amber-300 text-xs font-bold flex items-center gap-1.5">
+                <i class="fa-solid fa-eye"></i>
+                <span id="adminForceRevealText">強制公布結果</span>
+              </button>
+              <button onclick="openResetConfirmModal()" class="px-4 py-2.5 glass-btn text-rose-300 text-xs font-bold flex items-center gap-1.5">
+                <i class="fa-solid fa-rotate-left"></i>
+                <span>全部重置</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr class="border-b border-white/10 text-xs text-slate-400">
+                  <th class="py-2.5 px-3">投票者</th>
+                  <th class="py-2.5 px-3">投選時段</th>
+                  <th class="py-2.5 px-3">狀態</th>
+                  <th class="py-2.5 px-3">首選時段</th>
+                  <th class="py-2.5 px-3">30面骰點數</th>
+                  <th class="py-2.5 px-3">最終分配</th>
+                  <th class="py-2.5 px-3 text-right">操作</th>
+                </tr>
+              </thead>
+              <tbody id="adminVoterTableBody" class="divide-y divide-white/10"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Google Sheets Database & GitHub Pages Integration Panel -->
+        <div class="glass-panel p-6 sm:p-7 space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-4">
+            <div class="space-y-1">
+              <div class="inline-flex items-center gap-2 text-xs font-mono text-emerald-300">
+                <i class="fa-solid fa-table"></i>
+                <span>GOOGLE SHEETS 雲端資料庫 & GITHUB PAGES 部署設定</span>
+              </div>
+              <h3 class="text-lg font-bold text-white">Google Sheets 即時資料庫串接中樞</h3>
+            </div>
+            <div class="flex items-center gap-2 flex-wrap">
+              <a href="https://docs.google.com/spreadsheets/d/14aPkJxFY13HbSLrWFiOVGhuJkaDaGzVVjJUwYcKAIGA/edit" target="_blank" rel="noopener noreferrer" class="px-3.5 py-2 glass-btn text-emerald-300 text-xs font-bold flex items-center gap-1.5">
+                <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                <span>開啟 Google 試算表資料庫</span>
+              </a>
+              <button onclick="syncFromGoogleSheet(true)" class="px-3.5 py-2 glass-btn text-sky-300 text-xs font-bold flex items-center gap-1.5">
+                <i class="fa-solid fa-arrows-rotate"></i>
+                <span>立即同步雲端資料</span>
+              </button>
+              <button onclick="exportSelectionsCsv()" class="px-3.5 py-2 glass-btn text-starlight-gold text-xs font-bold flex items-center gap-1.5">
+                <i class="fa-solid fa-file-csv"></i>
+                <span>匯出 CSV</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 text-xs">
+            <div class="lg:col-span-7 space-y-2">
+              <label for="gasWebAppUrlInput" class="block font-mono text-slate-300">
+                Google Apps Script (GAS) Web App API 網址 <span class="text-slate-400">(綁定試算表 ID: <code class="text-amber-300">14aPkJxFY13HbSLrWFiOVGhuJkaDaGzVVjJUwYcKAIGA</code>)</span>
+              </label>
+              <div class="flex gap-2">
+                <input
+                  id="gasWebAppUrlInput"
+                  type="url"
+                  placeholder="https://script.google.com/macros/s/.../exec"
+                  class="flex-1 px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/20 text-white font-mono text-xs focus:outline-none focus:border-starlight-gold"
+                />
+                <button onclick="saveGasWebAppUrl()" class="px-4 py-2.5 rounded-xl btn-luxury text-xs whitespace-nowrap">
+                  儲存端點
+                </button>
+              </div>
+              <p id="gasConnectionStatusText" class="text-[11px] text-slate-400 font-mono">
+                目前狀態：支援 Google Sheets (Apps Script Web App API) + 瀏覽器快取雙重同步
+              </p>
+            </div>
+
+            <div class="lg:col-span-5 glass-card p-3.5 space-y-1.5 text-[11px] text-slate-300">
+              <div class="font-bold text-starlight-champagne flex items-center justify-between">
+                <span><i class="fa-brands fa-github mr-1.5"></i>GitHub Pages & 試算表資訊</span>
+                <span class="font-mono text-[10px] text-sky-300">carnedon</span>
+              </div>
+              <div>• 試算表名稱：<span class="text-white">時段決策系統_資料庫 (開會時間搶奪大賽)</span></div>
+              <div>• 工作表結構：<code class="text-emerald-300">Selections</code> / <code class="text-emerald-300">TimeSlots</code> / <code class="text-emerald-300">SystemConfig</code></div>
+              <div>• 部署環境：相容於 <code class="text-sky-300">carnedon.github.io</code> 靜態網站託管</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Custom Glass Modal -->
+    <div id="customModal" class="fixed inset-0 z-50 hidden items-center justify-center glass-modal-backdrop p-4">
+      <div class="glass-modal max-w-md w-full p-6 space-y-4">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl glass-card flex items-center justify-center text-amber-300">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+          </div>
+          <div>
+            <h4 id="modalTitle" class="text-base font-bold text-white">確認重置</h4>
+            <p id="modalSubtitle" class="text-[10px] text-slate-400 font-mono">管理員權限操作</p>
+          </div>
+        </div>
+        <p id="modalBody" class="text-xs text-slate-300 leading-relaxed"></p>
+        <div id="modalActions" class="flex items-center justify-end gap-2.5 pt-2"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Firebase & Core Application Logic -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    // =========================================================================
+    // 1. STATIC POLL DATA & USER ACCOUNTS DEFINITION
+    // =========================================================================
+    const TIME_SLOTS = [
+      {
+        id: 'slot_1',
+        dayGroup: 'MON',
+        label: '11/16 Mon 19:00~20:00',
+        shortTime: '19:00 ~ 20:00',
+        dateStr: '11/16 (一)',
+        voteCount: 1,
+        voters: ['115605506'], // 北斗七星潭
+        isOverlappingSlot: false
+      },
+      {
+        id: 'slot_2',
+        dayGroup: 'MON',
+        label: '11/16 Mon 20:00~21:00',
+        shortTime: '20:00 ~ 21:00',
+        dateStr: '11/16 (一)',
+        voteCount: 1,
+        voters: ['115605506'], // 北斗七星潭
+        isOverlappingSlot: false
+      },
+      {
+        id: 'slot_3',
+        dayGroup: 'MON',
+        label: '11/16 Mon 21:00~22:00',
+        shortTime: '21:00 ~ 22:00',
+        dateStr: '11/16 (一)',
+        voteCount: 1,
+        voters: ['115605003'], // Albireo 天鵝座β
+        isOverlappingSlot: false
+      },
+      {
+        id: 'slot_4',
+        dayGroup: 'MON',
+        label: '11/16 Mon 22:00~23:00',
+        shortTime: '22:00 ~ 23:00',
+        dateStr: '11/16 (一)',
+        voteCount: 1,
+        voters: ['115605003'], // Albireo 天鵝座β
+        isOverlappingSlot: false
+      },
+      {
+        id: 'slot_5',
+        dayGroup: 'THU',
+        label: '11/19 Thu 20:00~21:00',
+        shortTime: '20:00 ~ 21:00',
+        dateStr: '11/19 (四)',
+        voteCount: 2,
+        voters: ['115602535', '115601006'], // 神聖彗星, 非洲之心宿二
+        isOverlappingSlot: true
+      },
+      {
+        id: 'slot_6',
+        dayGroup: 'THU',
+        label: '11/19 Thu 21:00~22:00',
+        shortTime: '21:00 ~ 22:00',
+        dateStr: '11/19 (四)',
+        voteCount: 3,
+        voters: ['115602535', '115601006', '115602511'], // 神聖彗星, 非洲之心宿二, Are You Sirus
+        isOverlappingSlot: true
+      },
+      {
+        id: 'slot_7',
+        dayGroup: 'THU',
+        label: '11/19 Thu 22:00~23:00',
+        shortTime: '22:00 ~ 23:00',
+        dateStr: '11/19 (四)',
+        voteCount: 2,
+        voters: ['115602511', '115605512'], // Are You Sirus, Pillars of Creation
+        isOverlappingSlot: true
+      },
+      {
+        id: 'slot_8',
+        dayGroup: 'THU',
+        label: '11/19 Thu 23:00~00:00',
+        shortTime: '23:00 ~ 00:00',
+        dateStr: '11/19 (四)',
+        voteCount: 1,
+        voters: ['115605512'], // Pillars of Creation
+        isOverlappingSlot: false // Only Pillars voted for 23-00, though Pillars is part of the Thu overlapping cluster
+      }
+    ];
+
+    const USERS = {
+      '115605506': {
+        studentId: '115605506',
+        nickname: '北斗七星潭',
+        constellation: 'Ursa Major // 大熊座七星',
+        role: 'voter',
+        cluster: 'MON_SOLO_1', // Independent pair of slots
+        votedSlots: ['slot_1', 'slot_2']
+      },
+      '115605003': {
+        studentId: '115605003',
+        nickname: 'Albireo 天鵝座β',
+        constellation: 'Cygnus β // 輦道增七雙星',
+        role: 'voter',
+        cluster: 'MON_SOLO_2', // Independent pair of slots
+        votedSlots: ['slot_3', 'slot_4']
+      },
+      '115602535': {
+        studentId: '115602535',
+        nickname: '神聖彗星',
+        constellation: 'Comet Halley // 聖潔長尾彗星',
+        role: 'voter',
+        cluster: 'THU_OVERLAP',
+        votedSlots: ['slot_5', 'slot_6']
+      },
+      '115601006': {
+        studentId: '115601006',
+        nickname: '非洲之心宿二',
+        constellation: 'Antares α Sco // 天蠍座阿爾法紅超巨星',
+        role: 'voter',
+        cluster: 'THU_OVERLAP',
+        votedSlots: ['slot_5', 'slot_6']
+      },
+      '115602511': {
+        studentId: '115602511',
+        nickname: 'Are You Sirus',
+        constellation: 'Sirius α CMa // 大犬座天狼星',
+        role: 'voter',
+        cluster: 'THU_OVERLAP',
+        votedSlots: ['slot_6', 'slot_7']
+      },
+      '115605512': {
+        studentId: '115605512',
+        nickname: 'Pillars of Creation',
+        constellation: 'Eagle Nebula M16 // 創世之柱星雲',
+        role: 'voter',
+        cluster: 'THU_OVERLAP',
+        votedSlots: ['slot_7', 'slot_8']
+      },
+      '114607505': {
+        studentId: '114607505',
+        nickname: '1/4 of the 4 "Flowers" of Space Science and Engineering',
+        constellation: 'Grand Administrator // 太空科學四花之一',
+        role: 'admin',
+        cluster: 'ADMIN',
+        votedSlots: []
+      },
+      '114602006': {
+        studentId: '114602006',
+        nickname: 'The Princess of Bubble The Square Root of Sugar',
+        constellation: 'Grand Administrator // 泡泡公主・糖之平方根',
+        role: 'admin',
+        cluster: 'ADMIN',
+        votedSlots: []
+      }
+    };
+
+    const VOTER_IDS = ['115605506', '115605003', '115602535', '115601006', '115602511', '115605512'];
+    const THU_CLUSTER_IDS = ['115602535', '115601006', '115602511', '115605512'];
+
+    // =========================================================================
+    // 2. APPLICATION STATE & GOOGLE SHEETS DATABASE + FIREBASE + LOCAL SYNC
+    // =========================================================================
+    // 綁定之 Google Sheets 資料庫資訊 (時段決策系統_資料庫)
+    const GOOGLE_SHEET_ID = '14aPkJxFY13HbSLrWFiOVGhuJkaDaGzVVjJUwYcKAIGA';
+    const GOOGLE_SHEET_URL = 'https://docs.google.com/spreadsheets/d/14aPkJxFY13HbSLrWFiOVGhuJkaDaGzVVjJUwYcKAIGA/edit';
+    const STORAGE_KEY_STATE = 'interstellar_timeslot_d30_state_v1';
+    const STORAGE_KEY_GAS_URL = 'interstellar_timeslot_gas_url_v1';
+
+    // 若已部署 Google Apps Script Web App，可在此填入預設網址或透過管理後台設定
+    const DEFAULT_GAS_WEB_APP_URL = '';
+
+    let currentUser = null;
+    let activeTab = 'vote';
+    let selectedSlotDraft = null;
+    let isRollingD30 = false;
+    let audioEnabled = true;
+    let gasWebAppUrl = DEFAULT_GAS_WEB_APP_URL;
+
+    // Default shared state
+    function createInitialState() {
+      return {
+        selections: {
+          // studentId: { chosenSlot: 'slot_x', backupSlot: 'slot_y', d30Roll: number|null, timestamp: number }
+        },
+        forceRevealThu: false,
+        lastUpdated: Date.now()
+      };
+    }
+
+    let appState = createInitialState();
+    let db = null;
+    let auth = null;
+    let firestoreReady = false;
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'interstellar-timeslot-d30';
+
+    function loadLocalCache() {
+      try {
+        const savedUrl = localStorage.getItem(STORAGE_KEY_GAS_URL);
+        if (savedUrl) gasWebAppUrl = savedUrl.trim();
+        const raw = localStorage.getItem(STORAGE_KEY_STATE);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && typeof parsed === 'object') {
+            appState = {
+              selections: parsed.selections || {},
+              forceRevealThu: Boolean(parsed.forceRevealThu),
+              lastUpdated: parsed.lastUpdated || Date.now()
+            };
+          }
+        }
+      } catch (e) {
+        console.warn('Local cache read skipped:', e);
+      }
+    }
+
+    function saveLocalCache() {
+      try {
+        localStorage.setItem(STORAGE_KEY_STATE, JSON.stringify(appState));
+      } catch (e) {
+        console.warn('Local cache write skipped:', e);
+      }
+    }
+
+    window.saveGasWebAppUrl = function() {
+      const inputEl = document.getElementById('gasWebAppUrlInput');
+      if (!inputEl) return;
+      gasWebAppUrl = (inputEl.value || '').trim();
+      try {
+        localStorage.setItem(STORAGE_KEY_GAS_URL, gasWebAppUrl);
+      } catch (e) {}
+      const statusText = document.getElementById('gasConnectionStatusText');
+      if (statusText) {
+        statusText.textContent = gasWebAppUrl
+          ? '已儲存 GAS Web App API 端點，正在與 Google 試算表同步...'
+          : '已切換為本機快取 / 預設同步模式';
+      }
+      if (gasWebAppUrl) {
+        syncFromGoogleSheet(true);
+      } else {
+        updateSyncBadge(false);
+      }
+    };
+
+    window.syncFromGoogleSheet = async function(manualTrigger = false) {
+      if (!gasWebAppUrl) {
+        if (manualTrigger) {
+          const statusText = document.getElementById('gasConnectionStatusText');
+          if (statusText) {
+            statusText.textContent = '請先於上方輸入部署後的 Google Apps Script Web App 網址 (/exec)';
+          }
+        }
+        return;
+      }
+      try {
+        const res = await fetch(gasWebAppUrl + '?action=getState&t=' + Date.now(), {
+          method: 'GET',
+          headers: { 'Accept': 'application/json' }
+        });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+        if (data && data.status === 'ok') {
+          appState = {
+            selections: data.selections || {},
+            forceRevealThu: Boolean(data.forceRevealThu),
+            lastUpdated: data.lastUpdated || Date.now()
+          };
+          saveLocalCache();
+          updateSyncBadge(true, 'GSheet 已連線');
+          const statusText = document.getElementById('gasConnectionStatusText');
+          if (statusText) {
+            statusText.textContent = 'Google 試算表同步成功 (' + new Date().toLocaleTimeString() + ')';
+          }
+          renderAllViews();
+        }
+      } catch (err) {
+        console.warn('Google Sheets API sync fallback:', err);
+        const statusText = document.getElementById('gasConnectionStatusText');
+        if (statusText) {
+          statusText.textContent = '連線提示：目前使用本機與離線容錯快取 (' + (err.message || '請確認 GAS 部署權限設為所有人') + ')';
+        }
+      }
+    };
+
+    async function pushToGoogleSheet() {
+      if (!gasWebAppUrl) return;
+      try {
+        const alloc = computeAllocationResult();
+        const payload = {
+          action: 'saveFullState',
+          spreadsheetId: GOOGLE_SHEET_ID,
+          selections: appState.selections || {},
+          resolvedUserMap: alloc.resolvedUserMap || {},
+          userFinalSlot: alloc.userFinalSlot || {},
+          forceRevealThu: Boolean(appState.forceRevealThu),
+          lastUpdated: appState.lastUpdated
+        };
+        const res = await fetch(gasWebAppUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+          updateSyncBadge(true, 'GSheet 已同步');
+          const statusText = document.getElementById('gasConnectionStatusText');
+          if (statusText) {
+            statusText.textContent = '已寫入 Google 試算表資料庫 (' + new Date().toLocaleTimeString() + ')';
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to push state to Google Sheet:', err);
+      }
+    }
+
+    window.exportSelectionsCsv = function() {
+      const alloc = computeAllocationResult();
+      const headers = ['studentId', 'nickname', 'constellation', 'role', 'cluster', 'votedSlots', 'chosenSlot', 'chosenSlotLabel', 'backupSlot', 'd30Roll', 'finalAssignedSlot', 'status', 'timestamp'];
+      const rows = Object.keys(USERS).map(uid => {
+        const u = USERS[uid];
+        const rec = appState.selections[uid] || {};
+        const resolved = u.cluster === 'THU_OVERLAP' ? alloc.resolvedUserMap[uid] : alloc.userFinalSlot[uid];
+        return [
+          u.studentId,
+          '"' + (u.nickname || '').replace(/"/g, '""') + '"',
+          '"' + (u.constellation || '').replace(/"/g, '""') + '"',
+          u.role,
+          u.cluster,
+          '"' + (u.votedSlots || []).join(', ') + '"',
+          rec.chosenSlot || '',
+          rec.chosenSlot ? '"' + getSlotLabel(rec.chosenSlot) + '"' : '',
+          rec.backupSlot || '',
+          rec.d30Roll ?? '',
+          resolved?.slotId ? '"' + getSlotLabel(resolved.slotId) + '"' : '',
+          u.role === 'admin' ? 'ADMIN' : (rec.chosenSlot ? 'COMPLETED' : 'PENDING'),
+          rec.timestamp ? new Date(rec.timestamp).toISOString() : ''
+        ].join(',');
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = '時段決策系統_Selections.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    };
+
+    async function initFirebaseSync() {
+      loadLocalCache();
+      const urlInput = document.getElementById('gasWebAppUrlInput');
+      if (urlInput && gasWebAppUrl) urlInput.value = gasWebAppUrl;
+
+      if (gasWebAppUrl) {
+        await syncFromGoogleSheet(false);
+        setInterval(() => syncFromGoogleSheet(false), 12000);
+      }
+
+      try {
+        if (typeof __firebase_config !== 'undefined' && __firebase_config) {
+          const firebaseConfig = JSON.parse(__firebase_config);
+          const app = initializeApp(firebaseConfig);
+          db = getFirestore(app);
+          auth = getAuth(app);
+
+          if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+            await signInWithCustomToken(auth, __initial_auth_token);
+          } else {
+            await signInAnonymously(auth);
+          }
+
+          const stateDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'pollState', 'main');
+          onSnapshot(
+            stateDocRef,
+            (snapshot) => {
+              firestoreReady = true;
+              updateSyncBadge(true, 'Cloud Sync');
+              if (snapshot.exists()) {
+                const data = snapshot.data();
+                appState = {
+                  selections: data.selections ? JSON.parse(data.selections) : {},
+                  forceRevealThu: Boolean(data.forceRevealThu),
+                  lastUpdated: data.lastUpdated || Date.now()
+                };
+                saveLocalCache();
+              } else {
+                saveAppState();
+              }
+              renderAllViews();
+            },
+            (err) => {
+              console.warn('Firestore snapshot fallback to session state:', err);
+              updateSyncBadge(Boolean(gasWebAppUrl));
+            }
+          );
+        } else {
+          updateSyncBadge(Boolean(gasWebAppUrl));
+        }
+      } catch (e) {
+        console.warn('Firebase init fallback:', e);
+        updateSyncBadge(Boolean(gasWebAppUrl));
+      }
+      renderAllViews();
+    }
+
+    async function saveAppState() {
+      appState.lastUpdated = Date.now();
+      saveLocalCache();
+      renderAllViews();
+      pushToGoogleSheet();
+      if (db && auth && auth.currentUser) {
+        try {
+          const stateDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'pollState', 'main');
+          await setDoc(stateDocRef, {
+            selections: JSON.stringify(appState.selections || {}),
+            forceRevealThu: Boolean(appState.forceRevealThu),
+            lastUpdated: appState.lastUpdated
+          });
+        } catch (e) {
+          console.warn('Failed to write to Firestore:', e);
+        }
+      }
+    }
+
+    function updateSyncBadge(isCloud, labelText) {
+      const badge = document.getElementById('syncBadge');
+      const modeLbl = document.getElementById('dbModeLabel');
+      if (badge) {
+        badge.className = isCloud
+          ? 'w-2 h-2 rounded-full bg-emerald-400 animate-pulse'
+          : 'w-2 h-2 rounded-full bg-sky-400';
+      }
+      if (modeLbl && labelText) {
+        modeLbl.textContent = labelText;
+      }
+    }
+
+    // =========================================================================
+    // 3. SOUND SYNTHESIS (TONE.JS COSMIC AUDIO)
+    // =========================================================================
+    let synth = null;
+    function playCosmicSound(type) {
+      if (!audioEnabled || typeof Tone === 'undefined') return;
+      try {
+        if (Tone.context.state !== 'running') {
+          Tone.start();
+        }
+        if (!synth) {
+          synth = new Tone.PolySynth(Tone.Synth, {
+            oscillator: { type: 'sine' },
+            envelope: { attack: 0.02, decay: 0.2, sustain: 0.1, release: 0.8 }
+          }).toDestination();
+          synth.volume.value = -10;
+        }
+        if (type === 'login') {
+          synth.triggerAttackRelease(['C4', 'G4', 'B4', 'E5'], '8n');
+        } else if (type === 'select') {
+          synth.triggerAttackRelease(['E5', 'A5'], '16n');
+        } else if (type === 'tick') {
+          synth.triggerAttackRelease(['C6'], '32n');
+        } else if (type === 'win') {
+          synth.triggerAttackRelease(['D4', 'F#4', 'A4', 'D5', 'F#5'], '4n');
+        }
+      } catch (err) {
+        // Ignore audio errors on restricted devices
+      }
+    }
+
+    window.toggleAudio = function() {
+      audioEnabled = !audioEnabled;
+      const icon = document.getElementById('soundIcon');
+      if (audioEnabled) {
+        icon.className = 'fa-solid fa-volume-high text-xs';
+        playCosmicSound('select');
+      } else {
+        icon.className = 'fa-solid fa-volume-xmark text-xs text-slate-500';
+      }
+    };
+
+    // =========================================================================
+    // 4. OVERLAPPING TIME-SLOT & D30 RESOLUTION ALGORITHM
+    // =========================================================================
+    /**
+     * Evaluates the current selections and D30 rolls to compute:
+     * - Which slots are immediately published (Monday non-conflicting slots, or slots with 0 overlap)
+     * - Whether the Thursday overlapping cluster is ready to reveal (all 4 Thursday voters finished or admin forced reveal)
+     * - Exact resolution of the Thursday cluster so every voter gets one of their 2 voted slots based on D30 rolls!
+     */
+    function computeAllocationResult() {
+      const sel = appState.selections || {};
+      const finalSlotToUser = {}; // slotId -> { studentId, status: 'CONFIRMED'|'WON_D30'|'BACKUP_ASSIGNED', d30Roll, note }
+      const userFinalSlot = {};   // studentId -> { slotId, status, d30Roll, note }
+      const battleLogs = [];
+
+      // 1. Resolve Monday Independent Voters (115605506 北斗七星潭 & 115605003 Albireo 天鵝座β)
+      ['115605506', '115605003'].forEach((uid) => {
+        const record = sel[uid];
+        if (record && record.chosenSlot) {
+          finalSlotToUser[record.chosenSlot] = {
+            studentId: uid,
+            status: 'IMMEDIATE',
+            d30Roll: record.d30Roll || null,
+            note: '獨立時段無衝堂，選完立即公布'
+          };
+          userFinalSlot[uid] = {
+            slotId: record.chosenSlot,
+            status: 'IMMEDIATE',
+            d30Roll: record.d30Roll || null,
+            note: '獨立時段無衝堂，立即確認'
+          };
+        }
+      });
+
+      // 2. Check if Thursday Overlapping Group is ready to reveal
+      const thuCompletedIds = THU_CLUSTER_IDS.filter(id => Boolean(sel[id] && sel[id].chosenSlot));
+      const allThuCompleted = thuCompletedIds.length === THU_CLUSTER_IDS.length;
+      const isThuRevealed = allThuCompleted || Boolean(appState.forceRevealThu);
+
+      // Even if not publicly revealed yet, we compute the resolution for Admin preview & for when revealed
+      const resolvedSlotMap = {};
+      const resolvedUserMap = {};
+
+      // Group A: 神聖彗星 (115602535) & 非洲之心宿二 (115601006) -> Both voted for slot_5 (20-21) & slot_6 (21-22)
+      const uComet = sel['115602535'];
+      const uAntares = sel['115601006'];
+      let slot6ContenderFromPair = null; // Who from Pair (Comet/Antares) wants or gets pushed to slot_6 (21-22)
+
+      if (uComet && uAntares) {
+        if (uComet.chosenSlot !== uAntares.chosenSlot) {
+          // No clash between Comet and Antares!
+          resolvedUserMap['115602535'] = {
+            slotId: uComet.chosenSlot,
+            status: 'NO_CLASH_IN_PAIR',
+            d30Roll: uComet.d30Roll,
+            note: '與同組投票者選擇不同時段，無須爭搶'
+          };
+          resolvedUserMap['115601006'] = {
+            slotId: uAntares.chosenSlot,
+            status: 'NO_CLASH_IN_PAIR',
+            d30Roll: uAntares.d30Roll,
+            note: '與同組投票者選擇不同時段，無須爭搶'
+          };
+          slot6ContenderFromPair = uComet.chosenSlot === 'slot_6' ? '115602535' : '115601006';
+          battleLogs.push({
+            title: '【11/19 20:00~21:00 & 21:00~22:00 雙星分流】',
+            detail: `「神聖彗星」選擇 ${ getSlotLabel(uComet.chosenSlot) }，「非洲之心宿二」選擇 ${ getSlotLabel(uAntares.chosenSlot) }，雙方巧妙避開首選衝突！`,
+            type: 'peace'
+          });
+        } else {
+          // Both picked the SAME slot (either both slot_5 or both slot_6)! Compare their D30 rolls!
+          const contestedSlot = uComet.chosenSlot;
+          const otherSlot = contestedSlot === 'slot_5' ? 'slot_6' : 'slot_5';
+          const rollComet = uComet.d30Roll || 0;
+          const rollAntares = uAntares.d30Roll || 0;
+
+          const winnerId = rollComet >= rollAntares ? '115602535' : '115601006';
+          const loserId = winnerId === '115602535' ? '115601006' : '115602535';
+          const winnerRoll = winnerId === '115602535' ? rollComet : rollAntares;
+          const loserRoll = winnerId === '115602535' ? rollAntares : rollComet;
+
+          resolvedUserMap[winnerId] = {
+            slotId: contestedSlot,
+            status: 'WON_D30',
+            d30Roll: winnerRoll,
+            note: `D30 擲出 ${winnerRoll} 點勝出，奪得首選時段`
+          };
+          resolvedUserMap[loserId] = {
+            slotId: otherSlot,
+            status: 'BACKUP_ASSIGNED',
+            d30Roll: loserRoll,
+            note: `D30 擲出 ${loserRoll} 點惜敗，自動分配至另一投選時段`
+          };
+
+          slot6ContenderFromPair = contestedSlot === 'slot_6' ? winnerId : loserId;
+
+          battleLogs.push({
+            title: `【D30 對決】${getSlotLabel(contestedSlot)} 搶奪戰`,
+            detail: `${USERS[winnerId].nickname} (🎲 ${winnerRoll} 點) 擊敗 ${USERS[loserId].nickname} (🎲 ${loserRoll} 點)！${USERS[winnerId].nickname} 獲得 ${getSlotShort(contestedSlot)}，${USERS[loserId].nickname} 自動分配至 ${getSlotShort(otherSlot)}。`,
+            type: 'clash'
+          });
+        }
+      } else if (uComet || uAntares) {
+        // Only one of the pair has voted so far (for partial preview)
+        const activeId = uComet ? '115602535' : '115601006';
+        const rec = sel[activeId];
+        resolvedUserMap[activeId] = {
+          slotId: rec.chosenSlot,
+          status: 'PENDING_PARTNER',
+          d30Roll: rec.d30Roll,
+          note: '等待同組重疊投票者完成選擇'
+        };
+        if (rec.chosenSlot === 'slot_6') slot6ContenderFromPair = activeId;
+      }
+
+      // Note on mathematically valid full matching for Thursday:
+      // Notice that Comet (20-21, 21-22) and Antares (20-21, 21-22) ONLY have slots 20-21 and 21-22.
+      // Together, the two of them MUST occupy both 20-21 (slot_5) and 21-22 (slot_6) if everyone gets 1 distinct slot,
+      // OR if Are You Sirus (21-22, 22-23) competes for 21-22 (slot_6):
+      // Let's handle Are You Sirus (115602511) & Pillars of Creation (115605512) with full D30 comparison!
+      const uSirus = sel['115602511'];
+      const uPillars = sel['115605512'];
+
+      if (uSirus) {
+        if (uSirus.chosenSlot === 'slot_6') {
+          // Sirus wants 21:00~22:00!
+          // Check if someone from Comet/Antares is on slot_6
+          if (slot6ContenderFromPair && resolvedUserMap[slot6ContenderFromPair]) {
+            const pairUserId = slot6ContenderFromPair;
+            const pairRoll = sel[pairUserId]?.d30Roll || 0;
+            const sirusRoll = uSirus.d30Roll || 0;
+
+            // Compare Sirus vs the holder of slot_6
+            // Note: Since Comet & Antares only have [slot_5, slot_6], if Sirus wins slot_6 AND both Comet & Antares also need slots,
+            // we log the 3-way D30 clash on 21:00~22:00!
+            if (sirusRoll > pairRoll && !(uComet && uAntares)) {
+              // If only one of Comet/Antares voted and Sirus beat them, push that person to slot_5
+              resolvedUserMap['115602511'] = {
+                slotId: 'slot_6',
+                status: 'WON_D30',
+                d30Roll: sirusRoll,
+                note: `於 21:00~22:00 擲出 ${sirusRoll} 點勝出`
+              };
+              resolvedUserMap[pairUserId] = {
+                slotId: 'slot_5',
+                status: 'BACKUP_ASSIGNED',
+                d30Roll: pairRoll,
+                note: `於 21:00~22:00 擲出 ${pairRoll} 點，自動移至 20:00~21:00`
+              };
+            } else {
+              // Both Comet & Antares occupy {20-21, 21-22}, or pair holder rolled higher
+              const reasonText = (sirusRoll <= pairRoll)
+                ? `於 21:00~22:00 D30 對決 (${sirusRoll} 點 vs ${USERS[pairUserId].nickname} ${pairRoll} 點) 未勝出，自動分配至另一時段 22:00~23:00`
+                : `因 20:00~22:00 區間由神聖彗星與非洲之心宿二雙向綁定，系統依連鎖相容法則將您分配至 22:00~23:00（保留高點數 ${sirusRoll} 點優勢迎戰下一時段）`;
+
+              resolvedUserMap['115602511'] = {
+                slotId: 'slot_7',
+                status: sirusRoll <= pairRoll ? 'BACKUP_ASSIGNED' : 'CHAIN_SHIFTED',
+                d30Roll: sirusRoll,
+                note: reasonText
+              };
+
+              battleLogs.push({
+                title: `【D30 對決】11/19 Thu 21:00~22:00 三方星域交會`,
+                detail: `Are You Sirus (🎲 ${sirusRoll} 點) 與 ${USERS[pairUserId].nickname} (🎲 ${pairRoll} 點) 競逐 21:00~22:00。最終由 ${USERS[pairUserId].nickname} 駐留 21:00~22:00，Are You Sirus 轉入其另一投選時段 22:00~23:00。`,
+                type: 'clash'
+              });
+            }
+          } else {
+            resolvedUserMap['115602511'] = {
+              slotId: 'slot_6',
+              status: 'WON_D30',
+              d30Roll: uSirus.d30Roll,
+              note: '選擇 21:00~22:00'
+            };
+          }
+        } else {
+          // Sirus directly chose slot_7 (22:00~23:00)
+          resolvedUserMap['115602511'] = {
+            slotId: 'slot_7',
+            status: 'CONFIRMED',
+            d30Roll: uSirus.d30Roll,
+            note: '首選 22:00~23:00'
+          };
+        }
+      }
+
+      // Now resolve Pillars of Creation (115605512) who voted for slot_7 (22-23) and slot_8 (23-00)
+      if (uPillars) {
+        const sirusAssignedSlot7 = resolvedUserMap['115602511']?.slotId === 'slot_7';
+        if (uPillars.chosenSlot === 'slot_8') {
+          // Pillars picked 23:00~00:00 (no one else even voted for 23:00~00:00!)
+          resolvedUserMap['115605512'] = {
+            slotId: 'slot_8',
+            status: 'IMMEDIATE_OR_NO_CLASH',
+            d30Roll: uPillars.d30Roll,
+            note: '選擇 23:00~00:00 無人競爭，穩居該時段'
+          };
+          battleLogs.push({
+            title: `【11/19 Thu 23:00~00:00 創世之柱獨享星域】`,
+            detail: `Pillars of Creation 直接選擇 23:00~00:00，與 Are You Sirus 完全無衝突！`,
+            type: 'peace'
+          });
+        } else {
+          // Pillars picked slot_7 (22:00~23:00)
+          if (sirusAssignedSlot7 && uSirus) {
+            const sirusRoll = uSirus.d30Roll || 0;
+            const pillarsRoll = uPillars.d30Roll || 0;
+            const sirusChose7Directly = uSirus.chosenSlot === 'slot_7';
+
+            if (sirusChose7Directly) {
+              // Direct head-to-head on 22:00~23:00!
+              if (pillarsRoll > sirusRoll && resolvedUserMap['115602535']?.slotId !== 'slot_6' && resolvedUserMap['115601006']?.slotId !== 'slot_6') {
+                // Pillars wins 22-23 and Sirus can go to 21-22 if 21-22 is free
+                resolvedUserMap['115605512'] = {
+                  slotId: 'slot_7',
+                  status: 'WON_D30',
+                  d30Roll: pillarsRoll,
+                  note: `D30 擲出 ${pillarsRoll} 點勝出，獲得 22:00~23:00`
+                };
+                resolvedUserMap['115602511'] = {
+                  slotId: 'slot_6',
+                  status: 'BACKUP_ASSIGNED',
+                  d30Roll: sirusRoll,
+                  note: `D30 擲出 ${sirusRoll} 點惜敗，自動分配至 21:00~22:00`
+                };
+              } else {
+                // Compare D30 rolls for 22:00~23:00
+                const winnerIsSirus = sirusRoll >= pillarsRoll;
+                resolvedUserMap['115605512'] = {
+                  slotId: 'slot_8',
+                  status: 'BACKUP_ASSIGNED',
+                  d30Roll: pillarsRoll,
+                  note: winnerIsSirus
+                    ? `於 22:00~23:00 D30 對決 (${pillarsRoll} 點 vs Are You Sirus ${sirusRoll} 點) 惜敗，自動分配至另一時段 23:00~00:00`
+                    : `D30 擲出 ${pillarsRoll} 點，因前序 20:00~22:00 時段已滿載，系統自動調配至專屬時段 23:00~00:00`
+                };
+                battleLogs.push({
+                  title: `【D30 對決】11/19 Thu 22:00~23:00 搶奪戰`,
+                  detail: `Are You Sirus (🎲 ${sirusRoll} 點) 與 Pillars of Creation (🎲 ${pillarsRoll} 點) 交鋒！最終 Are You Sirus 分配至 22:00~23:00，Pillars of Creation 分配至另一投選時段 23:00~00:00。`,
+                  type: 'clash'
+                });
+              }
+            } else {
+              // Sirus was shifted from 21-22 to 22-23; Pillars moves to 23-00
+              resolvedUserMap['115605512'] = {
+                slotId: 'slot_8',
+                status: 'BACKUP_ASSIGNED',
+                d30Roll: pillarsRoll,
+                note: `與 Are You Sirus (🎲 ${sirusRoll} 點) 發生連鎖時段疊合，自動分配至另一投選時段 23:00~00:00`
+              };
+              battleLogs.push({
+                title: `【D30 連鎖遞補】11/19 Thu 22:00~23:00 & 23:00~00:00`,
+                detail: `Pillars of Creation (🎲 ${pillarsRoll} 點) 與 Are You Sirus (🎲 ${sirusRoll} 點) 進行時段調配，Are You Sirus 入駐 22:00~23:00，Pillars of Creation 自動分配至 23:00~00:00。`,
+                type: 'clash'
+              });
+            }
+          } else {
+            resolvedUserMap['115605512'] = {
+              slotId: 'slot_7',
+              status: 'WON_D30',
+              d30Roll: uPillars.d30Roll,
+              note: '獲得首選時段 22:00~23:00'
+            };
+          }
+        }
+      }
+
+      // Populate resolvedSlotMap for Thursday
+      Object.keys(resolvedUserMap).forEach((uid) => {
+        const info = resolvedUserMap[uid];
+        if (info && info.slotId) {
+          resolvedSlotMap[info.slotId] = {
+            studentId: uid,
+            ...info
+          };
+          if (isThuRevealed) {
+            finalSlotToUser[info.slotId] = {
+              studentId: uid,
+              ...info
+            };
+            userFinalSlot[uid] = info;
+          }
+        }
+      });
+
+      return {
+        finalSlotToUser,
+        userFinalSlot,
+        resolvedSlotMap,
+        resolvedUserMap,
+        thuCompletedCount: thuCompletedIds.length,
+        allThuCompleted,
+        isThuRevealed,
+        battleLogs
+      };
+    }
+
+    function getSlotById(slotId) {
+      return TIME_SLOTS.find(s => s.id === slotId);
+    }
+    function getSlotLabel(slotId) {
+      const s = getSlotById(slotId);
+      return s ? s.label : slotId;
+    }
+    function getSlotShort(slotId) {
+      const s = getSlotById(slotId);
+      return s ? `${s.dateStr} ${s.shortTime}` : slotId;
+    }
+
+    // =========================================================================
+    // 5. LOGIN, LOGOUT & NAVIGATION WORKFLOW
+    // =========================================================================
+    window.handleLogin = function(e) {
+      if (e) e.preventDefault();
+      const input = document.getElementById('studentIdInput');
+      const rawId = (input.value || '').trim();
+      const errEl = document.getElementById('loginErrorMsg');
+
+      if (!USERS[rawId]) {
+        errEl.classList.remove('hidden');
+        return;
+      }
+
+      errEl.classList.add('hidden');
+      loginWithStudentId(rawId);
+    };
+
+    window.loginWithStudentId = function(studentId) {
+      const user = USERS[studentId];
+      if (!user) return;
+      currentUser = user;
+      selectedSlotDraft = appState.selections[studentId]?.chosenSlot || null;
+
+      playCosmicSound('login');
+
+      const floatingNav = document.getElementById('floatingNav');
+      floatingNav.classList.remove('hidden');
+      const headerNameEl = document.getElementById('headerNickname');
+      headerNameEl.textContent = user.nickname;
+      headerNameEl.className = user.role === 'admin'
+        ? 'text-sm sm:text-base font-extrabold gold-gradient-text'
+        : 'text-sm font-bold text-starlight-champagne';
+      document.getElementById('headerRoleIcon').className = user.role === 'admin'
+        ? 'fa-solid fa-crown text-amber-300 text-sm'
+        : 'fa-solid fa-user-astronaut text-starlight-gold text-sm';
+
+      const navVote = document.getElementById('navTabVote');
+      const navAdmin = document.getElementById('navTabAdmin');
+
+      if (user.role === 'admin') {
+        navVote.classList.add('hidden');
+        navAdmin.classList.remove('hidden');
+        switchTab('admin');
+      } else {
+        navVote.classList.remove('hidden');
+        navAdmin.classList.add('hidden');
+        switchTab('vote');
+      }
+
+      renderAllViews();
+    };
+
+    window.logoutUser = function() {
+      currentUser = null;
+      selectedSlotDraft = null;
+      document.getElementById('floatingNav').classList.add('hidden');
+      document.getElementById('studentIdInput').value = '';
+      showSection('viewLogin');
+      renderAllViews();
+    };
+
+    window.switchTab = function(tabName) {
+      activeTab = tabName;
+      const tabs = {
+        vote: document.getElementById('navTabVote'),
+        results: document.getElementById('navTabResults'),
+        admin: document.getElementById('navTabAdmin')
+      };
+
+      Object.keys(tabs).forEach(k => {
+        const btn = tabs[k];
+        if (!btn) return;
+        if (k === tabName) {
+          btn.classList.add('bg-starlight-gold', 'text-cosmos-950', 'font-bold');
+          btn.classList.remove('text-slate-300', 'text-amber-300');
+        } else {
+          btn.classList.remove('bg-starlight-gold', 'text-cosmos-950', 'font-bold');
+          btn.classList.add(k === 'admin' ? 'text-amber-300' : 'text-slate-300');
+        }
+      });
+
+      if (tabName === 'vote') showSection('viewVote');
+      if (tabName === 'results') showSection('viewResults');
+      if (tabName === 'admin') showSection('viewAdmin');
+
+      renderAllViews();
+    };
+
+    function showSection(sectionId) {
+      ['viewLogin', 'viewVote', 'viewResults', 'viewAdmin'].forEach(id => {
+        const el = document.getElementById(id);
+        if (id === sectionId) {
+          el.classList.remove('hidden');
+        } else {
+          el.classList.add('hidden');
+        }
+      });
+    }
+
+    // =========================================================================
+    // 6. VOTER SELECTION & D30 ROLL INTERACTION
+    // =========================================================================
+    window.selectVoterSlot = function(slotId) {
+      if (!currentUser || currentUser.role !== 'voter' || isRollingD30) return;
+
+      // If user already locked in a choice, inform them they already completed selection
+      const existing = appState.selections[currentUser.studentId];
+      if (existing && existing.chosenSlot) {
+        return;
+      }
+
+      selectedSlotDraft = slotId;
+      playCosmicSound('select');
+      renderVoteView();
+    };
+
+    // Generates a unique D30 roll (1..30) that avoids exact ties with other Thursday voters
+    function generateUniqueD30Roll(forStudentId) {
+      const usedRolls = new Set();
+      THU_CLUSTER_IDS.forEach(id => {
+        if (id !== forStudentId && appState.selections[id]?.d30Roll) {
+          usedRolls.add(appState.selections[id].d30Roll);
+        }
+      });
+      let roll = Math.floor(Math.random() * 30) + 1;
+      let guard = 0;
+      while (usedRolls.has(roll) && guard < 50) {
+        roll = Math.floor(Math.random() * 30) + 1;
+        guard++;
+      }
+      return roll;
+    }
+
+    window.handleConfirmOrRoll = function() {
+      if (!currentUser || !selectedSlotDraft || isRollingD30) return;
+      const existing = appState.selections[currentUser.studentId];
+      if (existing && existing.chosenSlot) return;
+
+      const slotObj = getSlotById(selectedSlotDraft);
+      const otherSlotId = currentUser.votedSlots.find(s => s !== selectedSlotDraft);
+      const needsD30 = currentUser.cluster === 'THU_OVERLAP';
+
+      if (!needsD30) {
+        // Non-overlapping Monday voter! Still give them a celebratory D30 spin or immediate lock-in
+        const bonusRoll = Math.floor(Math.random() * 30) + 1;
+        triggerD30Animation(bonusRoll, () => {
+          appState.selections[currentUser.studentId] = {
+            chosenSlot: selectedSlotDraft,
+            backupSlot: otherSlotId,
+            d30Roll: bonusRoll,
+            timestamp: Date.now()
+          };
+          saveAppState();
+        });
+      } else {
+        // Overlapping Thursday cluster voter! Roll the 30-Sided Die (1 - 30)
+        const finalRoll = generateUniqueD30Roll(currentUser.studentId);
+        triggerD30Animation(finalRoll, () => {
+          appState.selections[currentUser.studentId] = {
+            chosenSlot: selectedSlotDraft,
+            backupSlot: otherSlotId,
+            d30Roll: finalRoll,
+            timestamp: Date.now()
+          };
+          saveAppState();
+        });
+      }
+    };
+
+    // =========================================================================
+    // 7. RENDERING VIEWS
+    // =========================================================================
+    function renderAllViews() {
+      if (!currentUser) return;
+      if (currentUser.role === 'voter') {
+        renderVoteView();
+      }
+      renderResultsView();
+      if (currentUser.role === 'admin') {
+        renderAdminView();
+      }
+    }
+
+    function renderVoteView() {
+      if (!currentUser || currentUser.role !== 'voter') return;
+
+      document.getElementById('welcomeConstellationTag').textContent = currentUser.constellation;
+      document.getElementById('welcomeNickname').textContent = currentUser.nickname;
+
+      const isThuOverlap = currentUser.cluster === 'THU_OVERLAP';
+      const subtextEl = document.getElementById('welcomeSubtext');
+      const badgeEl = document.getElementById('conflictRuleBadge');
+
+      if (isThuOverlap) {
+        subtextEl.textContent = '請從下方您的兩個投選時段擇一，並擲出 30 面骰進行決戰。';
+        badgeEl.className = 'text-[11px] px-2.5 py-0.5 rounded-full font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30';
+        badgeEl.innerHTML = `<i class="fa-solid fa-dice-d20 mr-1"></i>重疊時段 · 擲骰模式`;
+      } else {
+        subtextEl.textContent = '請從下方您的兩個投選時段擇一，確認後立即公布。';
+        badgeEl.className = 'text-[11px] px-2.5 py-0.5 rounded-full font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30';
+        badgeEl.innerHTML = `<i class="fa-solid fa-bolt mr-1"></i>無衝堂 · 立即公布`;
+      }
+
+      const existing = appState.selections[currentUser.studentId];
+      const alloc = computeAllocationResult();
+      const statusCard = document.getElementById('voterStatusCard');
+
+      if (existing && existing.chosenSlot) {
+        const myResolved = alloc.userFinalSlot[currentUser.studentId];
+        statusCard.innerHTML = `
+          <div class="text-[11px] font-bold text-emerald-400">已完成選擇 · 點數：${existing.d30Roll}</div>
+          <div class="text-xs font-bold text-white mt-0.5">首選：${getSlotShort(existing.chosenSlot)}</div>
+          <div class="text-[11px] mt-1 ${myResolved ? 'text-emerald-300' : 'text-amber-300'} font-mono">
+            ${myResolved ? `最終分配：${getSlotShort(myResolved.slotId)}` : `等待全員完成 (${alloc.thuCompletedCount}/4)`}
+          </div>
+        `;
+      } else {
+        statusCard.innerHTML = `
+          <div class="text-[11px] font-bold text-amber-300">尚未選擇時段</div>
+          <div class="text-xs text-slate-300 mt-0.5">請於下方二選一</div>
+        `;
+      }
+
+      const container = document.getElementById('voterSlotCardsContainer');
+      container.innerHTML = currentUser.votedSlots.map((slotId, idx) => {
+        const slot = getSlotById(slotId);
+        const isLockedChoice = existing && existing.chosenSlot === slotId;
+        const isBackupChoice = existing && existing.backupSlot === slotId;
+        const isDraftSelected = (!existing && selectedSlotDraft === slotId) || isLockedChoice;
+
+        const otherVotersNames = slot.voters
+          .filter(v => v !== currentUser.studentId)
+          .map(v => USERS[v].nickname);
+
+        const hasPotentialOverlap = otherVotersNames.length > 0;
+
+        return `
+          <div
+            onclick="selectVoterSlot('${slotId}')"
+            class="p-4 cursor-pointer relative overflow-hidden ${
+              isDraftSelected ? 'glass-card glass-card-selected' : 'glass-card'
+            } ${existing ? 'cursor-default' : ''}"
+          >
+            <div class="flex items-center justify-between gap-3">
+              <div class="space-y-1">
+                <div class="flex items-center gap-2">
+                  <span class="text-[11px] font-mono text-starlight-gold">時段 0${idx + 1}</span>
+                  ${hasPotentialOverlap
+                    ? `<span class="text-[11px] px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300">重疊：${otherVotersNames.join('、')}</span>`
+                    : `<span class="text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300">獨立時段</span>`
+                  }
+                </div>
+                <div class="text-base sm:text-lg font-bold text-white font-mono">${slot.label}</div>
+              </div>
+
+              <div class="shrink-0">
+                ${isLockedChoice
+                  ? `<span class="px-2.5 py-1 rounded-lg bg-starlight-gold text-cosmos-950 font-bold text-xs">已選首選</span>`
+                  : isBackupChoice
+                  ? `<span class="px-2.5 py-1 rounded-lg bg-black/40 border border-white/10 text-slate-400 text-xs">候補時段</span>`
+                  : isDraftSelected
+                  ? `<div class="w-7 h-7 rounded-full bg-starlight-gold text-cosmos-950 flex items-center justify-center"><i class="fa-solid fa-check text-xs"></i></div>`
+                  : `<div class="w-7 h-7 rounded-full border border-white/20"></div>`
+                }
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      const rollBtn = document.getElementById('confirmAndRollBtn');
+      const rollBtnText = document.getElementById('confirmAndRollBtnText');
+      const resultBanner = document.getElementById('d30ResultBanner');
+      const mainVal = document.getElementById('d30MainValue');
+      const smallLbl = document.getElementById('d30SmallLabel');
+
+      if (existing && existing.chosenSlot) {
+        rollBtn.disabled = false;
+        rollBtn.onclick = () => switchTab('results');
+        rollBtnText.innerHTML = `查看時段分配結果 <i class="fa-solid fa-arrow-right ml-1"></i>`;
+        mainVal.textContent = existing.d30Roll;
+        smallLbl.textContent = '點數鎖定';
+
+        resultBanner.classList.remove('hidden');
+        if (isThuOverlap && !alloc.isThuRevealed) {
+          resultBanner.className = 'rounded-xl p-2.5 text-center border bg-amber-500/10 border-amber-400/30 text-amber-200 text-xs';
+          resultBanner.innerHTML = `已擲出 <b>${existing.d30Roll}</b> 點 · 等待其他人完成 (${alloc.thuCompletedCount}/4)`;
+        } else {
+          const finalSlot = alloc.userFinalSlot[currentUser.studentId]?.slotId || existing.chosenSlot;
+          resultBanner.className = 'rounded-xl p-2.5 text-center border bg-emerald-500/10 border-emerald-400/30 text-emerald-200 text-xs';
+          resultBanner.innerHTML = `最終分配時段：<b>${getSlotShort(finalSlot)}</b>`;
+        }
+      } else {
+        rollBtn.onclick = handleConfirmOrRoll;
+        resultBanner.classList.add('hidden');
+        if (!isRollingD30) {
+          mainVal.textContent = selectedSlotDraft ? '30' : '--';
+          smallLbl.textContent = selectedSlotDraft ? '準備擲骰' : 'D30';
+        }
+        if (selectedSlotDraft) {
+          rollBtn.disabled = false;
+          const slotObj = getSlotById(selectedSlotDraft);
+          rollBtnText.textContent = currentUser.cluster === 'THU_OVERLAP'
+            ? `確認選擇 ${slotObj.shortTime} 並擲 30 面骰`
+            : `確認選擇 ${slotObj.shortTime}`;
+        } else {
+          rollBtn.disabled = true;
+          rollBtnText.textContent = '請先選擇一個時段';
+        }
+      }
+    }
+
+    function renderResultsView() {
+      const alloc = computeAllocationResult();
+
+      const monCompleted = ['115605506', '115605003'].filter(id => Boolean(appState.selections[id]?.chosenSlot)).length;
+      document.getElementById('monClusterStatus').textContent = `${monCompleted} / 2 已公布`;
+
+      const thuStatusEl = document.getElementById('thuClusterStatus');
+      const thuBadgeEl = document.getElementById('thuHeaderBadge');
+      if (alloc.isThuRevealed) {
+        thuStatusEl.textContent = `4 / 4 已公布`;
+        thuStatusEl.className = 'text-xs font-bold text-emerald-300 font-mono';
+        thuBadgeEl.className = 'text-[11px] px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30';
+        thuBadgeEl.textContent = '已公布結果';
+      } else {
+        thuStatusEl.textContent = `${alloc.thuCompletedCount} / 4 等待中`;
+        thuStatusEl.className = 'text-xs font-bold text-amber-300 font-mono';
+        thuBadgeEl.className = 'text-[11px] px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30';
+        thuBadgeEl.textContent = `等待全員選完 (${alloc.thuCompletedCount}/4)`;
+      }
+
+      const monSlots = TIME_SLOTS.filter(s => s.dayGroup === 'MON');
+      document.getElementById('mondaySlotsList').innerHTML = monSlots.map(slot => {
+        const assigned = alloc.finalSlotToUser[slot.id];
+        const voterId = slot.voters[0];
+        const voterUser = USERS[voterId];
+        const voterHasChosenAny = Boolean(appState.selections[voterId]?.chosenSlot);
+
+        if (assigned) {
+          const u = USERS[assigned.studentId];
+          return `
+            <div class="p-3.5 glass-card border-emerald-400/40 flex items-center justify-between gap-2">
+              <div class="font-mono text-sm font-bold text-white">${slot.label}</div>
+              <span class="px-3 py-1 rounded-lg bg-starlight-gold/20 border border-starlight-gold/40 text-starlight-champagne font-bold text-xs">
+                ${u.nickname}
+              </span>
+            </div>
+          `;
+        } else if (voterHasChosenAny) {
+          return `
+            <div class="p-3.5 glass-card opacity-40 flex items-center justify-between gap-2">
+              <div class="font-mono text-sm text-slate-400 line-through">${slot.label}</div>
+              <span class="text-[11px] text-slate-500">未選</span>
+            </div>
+          `;
+        } else {
+          return `
+            <div class="p-3.5 glass-card flex items-center justify-between gap-2">
+              <div class="font-mono text-sm text-white">${slot.label}</div>
+              <span class="text-[11px] text-slate-400">${voterUser.nickname} (尚未選擇)</span>
+            </div>
+          `;
+        }
+      }).join('');
+
+      const thuSlots = TIME_SLOTS.filter(s => s.dayGroup === 'THU');
+      document.getElementById('thursdaySlotsList').innerHTML = thuSlots.map(slot => {
+        const voterNames = slot.voters.map(id => USERS[id].nickname).join('、');
+
+        if (alloc.isThuRevealed) {
+          const assigned = alloc.finalSlotToUser[slot.id];
+          if (assigned) {
+            const u = USERS[assigned.studentId];
+            return `
+              <div class="p-3.5 glass-card border-starlight-gold/50 flex items-center justify-between gap-2">
+                <div>
+                  <div class="font-mono text-sm font-bold text-white">${slot.label}</div>
+                  <div class="text-[11px] font-mono text-starlight-gold">🎲 點數：${assigned.d30Roll || '--'}</div>
+                </div>
+                <span class="px-3 py-1 rounded-lg bg-starlight-gold/25 border border-starlight-gold text-white font-bold text-xs">
+                  ${u.nickname}
+                </span>
+              </div>
+            `;
+          } else {
+            return `
+              <div class="p-3.5 glass-card opacity-50 flex items-center justify-between gap-2">
+                <div class="font-mono text-sm text-slate-300">${slot.label}</div>
+                <span class="text-[11px] text-slate-400">無人分配</span>
+              </div>
+            `;
+          }
+        } else {
+          const finishedCount = slot.voters.filter(id => Boolean(appState.selections[id]?.chosenSlot)).length;
+          return `
+            <div class="p-3.5 glass-card flex items-center justify-between gap-2">
+              <div>
+                <div class="font-mono text-sm font-bold text-white">${slot.label}</div>
+                <div class="text-[11px] text-slate-400">${voterNames}</div>
+              </div>
+              <span class="px-2.5 py-1 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[11px] font-mono shrink-0">
+                <i class="fa-solid fa-lock mr-1"></i>${finishedCount}/${slot.voters.length} 已選
+              </span>
+            </div>
+          `;
+        }
+      }).join('');
+
+      const logContent = document.getElementById('d30BattleLogContent');
+      const logStatusTag = document.getElementById('battleLogStatusTag');
+
+      if (!alloc.isThuRevealed) {
+        logStatusTag.textContent = `保密中 (${alloc.thuCompletedCount}/4)`;
+        logContent.innerHTML = `
+          <div class="text-xs text-slate-400 py-2 text-center">
+            重疊時段將於 4 位投票者全數選完後統一公布結果。
+          </div>
+        `;
+      } else {
+        logStatusTag.textContent = '已揭曉';
+        logContent.innerHTML = `
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+            ${THU_CLUSTER_IDS.map(id => {
+              const rec = appState.selections[id];
+              const u = USERS[id];
+              const finalSlot = alloc.userFinalSlot[id];
+              return `
+                <div class="glass-card p-2.5 flex items-center justify-between gap-2">
+                  <div class="min-w-0">
+                    <div class="text-xs font-bold text-white truncate">${u.nickname}</div>
+                    <div class="text-[10px] text-emerald-300 font-mono">${finalSlot ? getSlotShort(finalSlot.slotId) : '--'}</div>
+                  </div>
+                  <div class="text-sm font-black font-mono gold-gradient-text shrink-0">🎲 ${rec?.d30Roll ?? '--'}</div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        `;
+      }
+    }
+
+    function renderAdminView() {
+      if (!currentUser || currentUser.role !== 'admin') return;
+
+      document.getElementById('adminWelcomeName').textContent = currentUser.nickname;
+      document.getElementById('adminForceRevealText').textContent = appState.forceRevealThu ? '恢復保密狀態' : '強制公布結果';
+      const gasInput = document.getElementById('gasWebAppUrlInput');
+      if (gasInput && document.activeElement !== gasInput) {
+        gasInput.value = gasWebAppUrl || '';
+      }
+
+      const alloc = computeAllocationResult();
+      const tbody = document.getElementById('adminVoterTableBody');
+
+      tbody.innerHTML = VOTER_IDS.map(uid => {
+        const u = USERS[uid];
+        const rec = appState.selections[uid];
+        const previewResolved = u.cluster === 'THU_OVERLAP' ? alloc.resolvedUserMap[uid] : alloc.userFinalSlot[uid];
+        const votedLabels = u.votedSlots.map(sid => getSlotShort(sid)).join(' / ');
+
+        return `
+          <tr class="hover:bg-white/[0.03]">
+            <td class="py-2.5 px-3">
+              <div class="font-mono text-[10px] text-starlight-gold">${u.studentId}</div>
+              <div class="font-bold text-white">${u.nickname}</div>
+            </td>
+            <td class="py-2.5 px-3 font-mono text-[11px] text-slate-400">${votedLabels}</td>
+            <td class="py-2.5 px-3 text-[11px]">
+              ${rec?.chosenSlot ? `<span class="text-emerald-300 font-bold">已選擇</span>` : `<span class="text-slate-500">未選擇</span>`}
+            </td>
+            <td class="py-2.5 px-3 font-mono text-[11px] text-sky-300">
+              ${rec?.chosenSlot ? getSlotShort(rec.chosenSlot) : '--'}
+            </td>
+            <td class="py-2.5 px-3 font-mono text-xs text-starlight-gold font-bold">
+              ${rec?.d30Roll ? `🎲 ${rec.d30Roll}` : '--'}
+            </td>
+            <td class="py-2.5 px-3 font-mono text-[11px] text-emerald-300 font-bold">
+              ${previewResolved ? getSlotShort(previewResolved.slotId) : '--'}
+            </td>
+            <td class="py-2.5 px-3 text-right space-x-1 whitespace-nowrap">
+              <button onclick="adminSimulateSingleUser('${uid}')" class="px-2.5 py-1 glass-btn text-sky-300 text-[11px]">代擲</button>
+              <button onclick="adminResetSingleUser('${uid}')" class="px-2.5 py-1 glass-btn text-rose-300 text-[11px]">重置</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // =========================================================================
+    // 8. ADMIN CONTROLS & CUSTOM MODALS
+    // =========================================================================
+    window.adminSimulateSingleUser = function(uid) {
+      const u = USERS[uid];
+      if (!u || u.role !== 'voter') return;
+      const randomIdx = Math.floor(Math.random() * u.votedSlots.length);
+      const chosen = u.votedSlots[randomIdx];
+      const backup = u.votedSlots.find(s => s !== chosen);
+      const roll = generateUniqueD30Roll(uid);
+
+      appState.selections[uid] = {
+        chosenSlot: chosen,
+        backupSlot: backup,
+        d30Roll: roll,
+        timestamp: Date.now()
+      };
+      playCosmicSound('select');
+      saveAppState();
+    };
+
+    window.adminSimulateRemaining = function() {
+      VOTER_IDS.forEach(uid => {
+        if (!appState.selections[uid]?.chosenSlot) {
+          const u = USERS[uid];
+          const randomIdx = Math.floor(Math.random() * u.votedSlots.length);
+          const chosen = u.votedSlots[randomIdx];
+          const backup = u.votedSlots.find(s => s !== chosen);
+          const roll = generateUniqueD30Roll(uid);
+          appState.selections[uid] = {
+            chosenSlot: chosen,
+            backupSlot: backup,
+            d30Roll: roll,
+            timestamp: Date.now()
+          };
+        }
+      });
+      playCosmicSound('win');
+      saveAppState();
+    };
+
+    window.adminResetSingleUser = function(uid) {
+      if (appState.selections[uid]) {
+        delete appState.selections[uid];
+        saveAppState();
+      }
+    };
+
+    window.adminToggleForceReveal = function() {
+      appState.forceRevealThu = !appState.forceRevealThu;
+      playCosmicSound('select');
+      saveAppState();
+    };
+
+    window.openResetConfirmModal = function() {
+      const modal = document.getElementById('customModal');
+      document.getElementById('modalTitle').textContent = '確定要全部重置嗎？';
+      document.getElementById('modalSubtitle').textContent = '管理員系統確認';
+      document.getElementById('modalBody').textContent = '這將清空所有投票者的時段選擇與 30 面骰點數紀錄，讓所有人重新選擇。';
+      document.getElementById('modalActions').innerHTML = `
+        <button onclick="closeCustomModal()" class="px-4 py-2 glass-btn text-xs text-slate-300">取消</button>
+        <button onclick="confirmResetAll()" class="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs">確定重置</button>
+      `;
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    };
+
+    window.confirmResetAll = function() {
+      appState = createInitialState();
+      selectedSlotDraft = null;
+      closeCustomModal();
+      saveAppState();
+    };
+
+    window.closeCustomModal = function() {
+      const modal = document.getElementById('customModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    };
+
+    // =========================================================================
+    // 9. 3D RHOMBIC TRIACONTAHEDRON (D30) INTERACTIVE CANVAS ENGINE
+    // =========================================================================
+    const d30Canvas = document.getElementById('d30Canvas');
+    const d30Ctx = d30Canvas.getContext('2d');
+
+    // Golden ratio for true Rhombic Triacontahedron (30 rhombic faces, 32 vertices)
+    const PHI = (1 + Math.sqrt(5)) / 2;
+    let d30Vertices = [];
+    let d30Faces = [];
+    let rotX = 0.4, rotY = 0.6, rotZ = 0.1;
+    let velX = 0.005, velY = 0.008, velZ = 0.002;
+    let d30Particles = [];
+
+    function buildRhombicTriacontahedron() {
+      // Build exact 32 vertices of a Rhombic Triacontahedron (dual of icosidodecahedron)
+      // Easier & ultra-clean construction: Start with the 30 midpoints of an icosahedron's edges as face normals,
+      // or construct the 12 icosahedron vertices + 20 dodecahedron vertices scaled appropriately!
+      const rawVerts = [];
+
+      // 12 vertices of Icosahedron: (0, ±1, ±PHI) cyclic permutations
+      const icoScale = 1.0;
+      for (let s1 of [-1, 1]) {
+        for (let s2 of [-1, 1]) {
+          rawVerts.push([0, s1 * 1 * icoScale, s2 * PHI * icoScale]);
+          rawVerts.push([s1 * 1 * icoScale, s2 * PHI * icoScale, 0]);
+          rawVerts.push([s2 * PHI * icoScale, 0, s1 * 1 * icoScale]);
+        }
+      }
+
+      // 20 vertices of Dodecahedron: (±1, ±1, ±1) and (0, ±1/PHI, ±PHI) cyclic
+      // Scaled so they form planar rhombic faces with the 12 icosahedron vertices
+      const dodScale = 1 / PHI;
+      for (let x of [-1, 1]) {
+        for (let y of [-1, 1]) {
+          for (let z of [-1, 1]) {
+            rawVerts.push([x * dodScale, y * dodScale, z * dodScale]);
+          }
+        }
+      }
+      for (let s1 of [-1, 1]) {
+        for (let s2 of [-1, 1]) {
+          rawVerts.push([0, s1 * (1 / PHI) * dodScale, s2 * PHI * dodScale]);
+          rawVerts.push([s1 * (1 / PHI) * dodScale, s2 * PHI * dodScale, 0]);
+          rawVerts.push([s2 * PHI * dodScale, 0, s1 * (1 / PHI) * dodScale]);
+        }
+      }
+
+      // Normalize all 32 vertices to sphere radius for a jewel-like 30-faceted celestial polyhedron
+      d30Vertices = rawVerts.map(v => {
+        const len = Math.hypot(v[0], v[1], v[2]);
+        return [v[0] / len, v[1] / len, v[2] / len];
+      });
+
+      // Find the 30 rhombic faces by pairing each of the 12 icosahedral vertices (indices 0..11)
+      // with adjacent icosahedral vertices and their shared 2 dodecahedral vertices (indices 12..31)
+      d30Faces = [];
+      let faceNum = 1;
+      for (let i = 0; i < 12; i++) {
+        for (let j = i + 1; j < 12; j++) {
+          const vi = d30Vertices[i];
+          const vj = d30Vertices[j];
+          const distIco = Math.hypot(vi[0] - vj[0], vi[1] - vj[1], vi[2] - vj[2]);
+          // Adjacent icosahedron vertices have normalized distance ~ 1.05146
+          if (distIco > 0.95 && distIco < 1.15) {
+            // Find the 2 dodecahedron vertices closest to the midpoint of (vi, vj)
+            const mid = [(vi[0] + vj[0]) / 2, (vi[1] + vj[1]) / 2, (vi[2] + vj[2]) / 2];
+            const candidates = [];
+            for (let k = 12; k < 32; k++) {
+              const vk = d30Vertices[k];
+              const d = Math.hypot(vk[0] - mid[0], vk[1] - mid[1], vk[2] - mid[2]);
+              candidates.push({ idx: k, d });
+            }
+            candidates.sort((a, b) => a.d - b.d);
+            const k1 = candidates[0].idx;
+            const k2 = candidates[1].idx;
+            d30Faces.push({
+              indices: [i, k1, j, k2],
+              number: faceNum <= 30 ? faceNum++ : 30
+            });
+          }
+        }
+      }
+    }
+
+    function rotatePoint([x, y, z], ax, ay, az) {
+      // Rotate X
+      let y1 = y * Math.cos(ax) - z * Math.sin(ax);
+      let z1 = y * Math.sin(ax) + z * Math.cos(ax);
+      // Rotate Y
+      let x2 = x * Math.cos(ay) + z1 * Math.sin(ay);
+      let z2 = -x * Math.sin(ay) + z1 * Math.cos(ay);
+      // Rotate Z
+      let x3 = x2 * Math.cos(az) - y1 * Math.sin(az);
+      let y3 = x2 * Math.sin(az) + y1 * Math.cos(az);
+      return [x3, y3, z2];
+    }
+
+    function triggerD30Animation(targetNumber, onComplete) {
+      isRollingD30 = true;
+      const rollBtn = document.getElementById('confirmAndRollBtn');
+      const mainVal = document.getElementById('d30MainValue');
+      const smallLbl = document.getElementById('d30SmallLabel');
+      if (rollBtn) rollBtn.disabled = true;
+      smallLbl.textContent = 'ROLLING D30...';
+
+      // High-velocity spin burst
+      velX = 0.22;
+      velY = 0.28;
+      velZ = 0.16;
+
+      // Spawn celebratory golden particles
+      for (let i = 0; i < 45; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 1 + Math.random() * 3.5;
+        d30Particles.push({
+          x: 150,
+          y: 150,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          alpha: 1,
+          size: 1.5 + Math.random() * 2.5
+        });
+      }
+
+      let ticks = 0;
+      const maxTicks = 28;
+      const interval = setInterval(() => {
+        ticks++;
+        const randomPreview = Math.floor(Math.random() * 30) + 1;
+        mainVal.textContent = randomPreview;
+        if (ticks % 2 === 0) playCosmicSound('tick');
+
+        // Smooth deceleration
+        velX *= 0.91;
+        velY *= 0.91;
+        velZ *= 0.91;
+
+        if (ticks >= maxTicks) {
+          clearInterval(interval);
+          velX = 0.005;
+          velY = 0.008;
+          velZ = 0.002;
+          mainVal.textContent = targetNumber;
+          smallLbl.textContent = 'FATE LOCKED';
+          isRollingD30 = false;
+          playCosmicSound('win');
+          if (typeof onComplete === 'function') onComplete();
+        }
+      }, 65);
+    }
+
+    function renderD30Frame() {
+      d30Ctx.clearRect(0, 0, 300, 300);
+
+      rotX += velX;
+      rotY += velY;
+      rotZ += velZ;
+
+      const radius = 102;
+      const cx = 150, cy = 150;
+
+      // Transform vertices
+      const transformed = d30Vertices.map(v => {
+        const [rx, ry, rz] = rotatePoint(v, rotX, rotY, rotZ);
+        const perspective = 320 / (320 - rz * radius);
+        return {
+          x: cx + rx * radius * perspective,
+          y: cy + ry * radius * perspective,
+          z: rz
+        };
+      });
+
+      // Compute face depths and sort back-to-front (Painter's Algorithm)
+      const sortedFaces = d30Faces.map(f => {
+        const pts = f.indices.map(idx => transformed[idx]);
+        const avgZ = (pts[0].z + pts[1].z + pts[2].z + pts[3].z) / 4;
+        return { ...f, pts, avgZ };
+      }).sort((a, b) => a.avgZ - b.avgZ);
+
+      sortedFaces.forEach(face => {
+        const { pts, avgZ } = face;
+        d30Ctx.beginPath();
+        d30Ctx.moveTo(pts[0].x, pts[0].y);
+        d30Ctx.lineTo(pts[1].x, pts[1].y);
+        d30Ctx.lineTo(pts[2].x, pts[2].y);
+        d30Ctx.lineTo(pts[3].x, pts[3].y);
+        d30Ctx.closePath();
+
+        // Shade based on Z depth
+        const brightness = Math.max(0.08, (avgZ + 1) / 2);
+        if (avgZ > 0) {
+          d30Ctx.fillStyle = `rgba(18, 28, 62, ${0.45 + brightness * 0.4})`;
+          d30Ctx.strokeStyle = isRollingD30
+            ? `rgba(56, 189, 248, ${0.35 + brightness * 0.6})`
+            : `rgba(230, 198, 135, ${0.25 + brightness * 0.65})`;
+          d30Ctx.lineWidth = 1.25;
+        } else {
+          d30Ctx.fillStyle = `rgba(8, 12, 26, 0.25)`;
+          d30Ctx.strokeStyle = `rgba(230, 198, 135, 0.1)`;
+          d30Ctx.lineWidth = 0.6;
+        }
+        d30Ctx.fill();
+        d30Ctx.stroke();
+      });
+
+      // Update & draw particles
+      for (let i = d30Particles.length - 1; i >= 0; i--) {
+        const p = d30Particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.alpha -= 0.022;
+        if (p.alpha <= 0) {
+          d30Particles.splice(i, 1);
+          continue;
+        }
+        d30Ctx.beginPath();
+        d30Ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        d30Ctx.fillStyle = `rgba(230, 198, 135, ${p.alpha})`;
+        d30Ctx.fill();
+      }
+
+      requestAnimationFrame(renderD30Frame);
+    }
+
+    // Allow dragging the D30 die with mouse/touch
+    let isDraggingDie = false;
+    let lastMouseX = 0, lastMouseY = 0;
+    d30Canvas.addEventListener('pointerdown', (e) => {
+      isDraggingDie = true;
+      lastMouseX = e.clientX;
+      lastMouseY = e.clientY;
+    });
+    window.addEventListener('pointermove', (e) => {
+      if (!isDraggingDie) return;
+      const dx = e.clientX - lastMouseX;
+      const dy = e.clientY - lastMouseY;
+      rotY += dx * 0.01;
+      rotX += dy * 0.01;
+      lastMouseX = e.clientX;
+      lastMouseY = e.clientY;
+    });
+    window.addEventListener('pointerup', () => {
+      isDraggingDie = false;
+    });
+
+    // =========================================================================
+    // 10. ANIMATED DEEP SPACE STARFIELD BACKGROUND
+    // =========================================================================
+    const starCanvas = document.getElementById('starfieldCanvas');
+    const starCtx = starCanvas.getContext('2d');
+    let stars = [];
+
+    function resizeStarfield() {
+      starCanvas.width = window.innerWidth;
+      starCanvas.height = window.innerHeight;
+      stars = Array.from({ length: 130 }, () => ({
+        x: Math.random() * starCanvas.width,
+        y: Math.random() * starCanvas.height,
+        r: Math.random() * 1.6 + 0.3,
+        alpha: Math.random(),
+        dAlpha: (Math.random() * 0.015 + 0.003) * (Math.random() < 0.5 ? 1 : -1),
+        hue: Math.random() < 0.3 ? '#e6c687' : (Math.random() < 0.5 ? '#38bdf8' : '#ffffff')
+      }));
+    }
+
+    function animateStarfield() {
+      starCtx.clearRect(0, 0, starCanvas.width, starCanvas.height);
+      stars.forEach(s => {
+        s.alpha += s.dAlpha;
+        if (s.alpha > 0.95 || s.alpha < 0.15) s.dAlpha *= -1;
+        starCtx.beginPath();
+        starCtx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+        starCtx.fillStyle = s.hue;
+        starCtx.globalAlpha = Math.max(0.1, Math.min(1, s.alpha));
+        starCtx.fill();
+      });
+      starCtx.globalAlpha = 1;
+      requestAnimationFrame(animateStarfield);
+    }
+
+    // =========================================================================
+    // INITIALIZE ON WINDOW LOAD
+    // =========================================================================
+    window.onload = function() {
+      resizeStarfield();
+      window.addEventListener('resize', resizeStarfield);
+      animateStarfield();
+
+      buildRhombicTriacontahedron();
+      renderD30Frame();
+
+      initFirebaseSync();
+    };
+  </script>
+</body>
+</html>

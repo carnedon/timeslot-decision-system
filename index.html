@@ -468,9 +468,9 @@
             <h2 class="text-2xl font-bold gold-gradient-text tracking-wider">時段分配結果</h2>
           </div>
 
-          <div class="flex items-center gap-3">
+          <div class="flex items-center gap-2.5 flex-wrap">
             <div class="glass-card px-3.5 py-2 text-center">
-              <div class="text-[10px] font-mono text-slate-400">11/16 (一) · 11/17 (二)</div>
+              <div class="text-[10px] font-mono text-slate-400">11/16 (一) ~ 11/18 (三)</div>
               <div id="monClusterStatus" class="text-xs font-bold text-emerald-300 font-mono">0 / 2</div>
             </div>
             <div class="glass-card px-3.5 py-2 text-center">
@@ -484,7 +484,7 @@
           <!-- Monday 11/16 Column -->
           <div class="glass-panel p-5 space-y-3.5">
             <div class="flex items-center justify-between border-b border-white/10 pb-2.5">
-              <h3 class="font-bold text-sm tracking-wider text-white">11/16 (一) & 11/17 (二) 時段</h3>
+              <h3 class="font-bold text-sm tracking-wider text-white">11/16 (一) 星期一時段</h3>
               <span class="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
                 無衝堂立即公布
               </span>
@@ -492,10 +492,32 @@
             <div id="mondaySlotsList" class="space-y-2.5"></div>
           </div>
 
+          <!-- Tuesday 11/17 Column -->
+          <div class="glass-panel p-5 space-y-3.5">
+            <div class="flex items-center justify-between border-b border-white/10 pb-2.5">
+              <h3 class="font-bold text-sm tracking-wider text-white">11/17 (二) 星期二時段 (7.~12.)</h3>
+              <span class="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-sky-500/15 text-sky-300 border border-sky-500/30">
+                1小時1單位 · 立即公布
+              </span>
+            </div>
+            <div id="tuesdaySlotsList" class="space-y-2.5"></div>
+          </div>
+
+          <!-- Wednesday 11/18 Column -->
+          <div class="glass-panel p-5 space-y-3.5">
+            <div class="flex items-center justify-between border-b border-white/10 pb-2.5">
+              <h3 class="font-bold text-sm tracking-wider text-white">11/18 (三) 星期三時段</h3>
+              <span class="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">
+                無衝堂立即公布
+              </span>
+            </div>
+            <div id="wednesdaySlotsList" class="space-y-2.5"></div>
+          </div>
+
           <!-- Thursday 11/19 Column -->
           <div class="glass-panel p-5 space-y-3.5">
             <div class="flex items-center justify-between border-b border-white/10 pb-2.5">
-              <h3 class="font-bold text-sm tracking-wider text-white">11/19 (四) 時段</h3>
+              <h3 class="font-bold text-sm tracking-wider text-white">11/19 (四) 星期四時段</h3>
               <span id="thuHeaderBadge" class="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">
                 全體選完後公布
               </span>
@@ -785,6 +807,17 @@
         voteCount: 1,
         voters: ['115605506', '115605003'],
         isOverlappingSlot: false
+      },
+      // 星期三 (11/18 Wed) 21:30~22:30 專屬時段 (Albireo 天鵝座β)
+      {
+        id: 'wed_1',
+        dayGroup: 'WED',
+        label: '11/18 Wed 21:30~22:30',
+        shortTime: '21:30 ~ 22:30',
+        dateStr: '11/18 (三)',
+        voteCount: 1,
+        voters: ['115605003'], // Albireo 天鵝座β
+        isOverlappingSlot: false
       }
     ];
 
@@ -806,8 +839,8 @@
         nickname: 'Albireo 天鵝座β',
         constellation: 'Cygnus β // 輦道增七雙星',
         role: 'voter',
-        cluster: 'MON_SOLO_2', // Independent pair of slots
-        votedSlots: ['slot_3', 'slot_4'],
+        cluster: 'MON_SOLO_2', // Independent slots (Mon + Wed + Tue option)
+        votedSlots: ['slot_3', 'slot_4', 'wed_1'],
         canChooseTuesday: true,
         tuesdaySlots: ['tue_1', 'tue_2', 'tue_3', 'tue_4', 'tue_5']
       },
@@ -1729,7 +1762,7 @@
         badgeEl.className = 'text-[11px] px-2.5 py-0.5 rounded-full font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30';
         badgeEl.innerHTML = `<i class="fa-solid fa-dice-d20 mr-1"></i>重疊時段 · 擲骰模式`;
       } else {
-        subtextEl.textContent = '請從下方您的兩個星期一時段擇一，或點選「選擇星期二」從 7.~12. (19:00~00:00) 選擇 1 小時時段，確認後立即公布。';
+        subtextEl.textContent = '請從下方您的專屬時段擇一，或點選「選擇星期二」從 7.~12. (19:00~00:00) 選擇 1 小時時段，確認後立即公布。';
         badgeEl.className = 'text-[11px] px-2.5 py-0.5 rounded-full font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30';
         badgeEl.innerHTML = `<i class="fa-solid fa-bolt mr-1"></i>無衝堂 · 立即公布`;
       }
@@ -1853,7 +1886,7 @@
             <div class="flex items-center justify-between gap-3">
               <div class="space-y-1">
                 <div class="flex items-center gap-2 flex-wrap">
-                  <span class="text-[11px] font-mono text-sky-300">額外選項 03</span>
+                  <span class="text-[11px] font-mono text-sky-300">額外選項 0${currentUser.votedSlots.length + 1}</span>
                   <span class="text-[11px] px-2 py-0.5 rounded-full bg-sky-500/15 text-sky-300 border border-sky-400/30">
                     彈性加開 · 7.~12. (1小時1單位)
                   </span>
@@ -1956,9 +1989,9 @@
         thuBadgeEl.textContent = `等待全員選完 (${alloc.thuCompletedCount}/4)`;
       }
 
+      // 1. 星期一 (11/16 MON)
       const monSlots = TIME_SLOTS.filter(s => s.dayGroup === 'MON');
-      const tueSlots = TIME_SLOTS.filter(s => s.dayGroup === 'TUE');
-      const monHtml = monSlots.map(slot => {
+      document.getElementById('mondaySlotsList').innerHTML = monSlots.map(slot => {
         const assigned = alloc.finalSlotToUser[slot.id];
         const voterId = slot.voters[0];
         const voterUser = USERS[voterId];
@@ -1991,29 +2024,72 @@
         }
       }).join('');
 
-      const activeTueSlots = tueSlots.filter(slot => Boolean(alloc.finalSlotToUser[slot.id]));
-      const tueHtml = activeTueSlots.length > 0
-        ? `<div class="pt-2 border-t border-white/10 space-y-2">
-            <div class="text-[11px] font-mono text-sky-300">11/17 (二) 已選時段 (7.~12.)</div>
-            ${activeTueSlots.map(slot => {
-              const assigned = alloc.finalSlotToUser[slot.id];
-              const u = USERS[assigned.studentId];
-              return `
-                <div class="p-3.5 glass-card border-sky-400/50 flex items-center justify-between gap-2">
-                  <div class="font-mono text-sm font-bold text-white">${slot.label}</div>
-                  <span class="px-3 py-1 rounded-lg bg-sky-500/20 border border-sky-400/40 text-sky-200 font-bold text-xs">
-                    ${u.nickname}
-                  </span>
-                </div>
-              `;
-            }).join('')}
-          </div>`
-        : `<div class="pt-2 border-t border-white/10 flex items-center justify-between text-[11px] text-slate-400 font-mono">
-            <span>11/17 (二) 19:00~00:00 (7.~12. 彈性時段)</span>
-            <span>尚無人改選星期二</span>
-          </div>`;
+      // 2. 星期二 (11/17 TUE 7.~12. 一小時一單位)
+      const tueSlots = TIME_SLOTS.filter(s => s.dayGroup === 'TUE');
+      const bothMonVotersDone = ['115605506', '115605003'].every(id => Boolean(appState.selections[id]?.chosenSlot));
+      document.getElementById('tuesdaySlotsList').innerHTML = tueSlots.map(slot => {
+        const assigned = alloc.finalSlotToUser[slot.id];
+        if (assigned) {
+          const u = USERS[assigned.studentId];
+          return `
+            <div class="p-3.5 glass-card border-sky-400/50 flex items-center justify-between gap-2">
+              <div class="font-mono text-sm font-bold text-white">${slot.label}</div>
+              <span class="px-3 py-1 rounded-lg bg-sky-500/20 border border-sky-400/40 text-sky-200 font-bold text-xs">
+                ${u.nickname}
+              </span>
+            </div>
+          `;
+        } else if (bothMonVotersDone) {
+          return `
+            <div class="p-3 glass-card opacity-40 flex items-center justify-between gap-2">
+              <div class="font-mono text-xs sm:text-sm text-slate-400 line-through">${slot.label}</div>
+              <span class="text-[11px] text-slate-500">未選</span>
+            </div>
+          `;
+        } else {
+          return `
+            <div class="p-3 glass-card flex items-center justify-between gap-2">
+              <div class="font-mono text-xs sm:text-sm text-white">${slot.label}</div>
+              <span class="text-[11px] text-sky-300/80">開放選星期一者選用</span>
+            </div>
+          `;
+        }
+      }).join('');
 
-      document.getElementById('mondaySlotsList').innerHTML = monHtml + tueHtml;
+      // 3. 星期三 (11/18 WED)
+      const wedSlots = TIME_SLOTS.filter(s => s.dayGroup === 'WED');
+      document.getElementById('wednesdaySlotsList').innerHTML = wedSlots.map(slot => {
+        const assigned = alloc.finalSlotToUser[slot.id];
+        const voterId = slot.voters[0];
+        const voterUser = USERS[voterId];
+        const voterHasChosenAny = Boolean(appState.selections[voterId]?.chosenSlot);
+
+        if (assigned) {
+          const u = USERS[assigned.studentId];
+          return `
+            <div class="p-3.5 glass-card border-indigo-400/50 flex items-center justify-between gap-2">
+              <div class="font-mono text-sm font-bold text-white">${slot.label}</div>
+              <span class="px-3 py-1 rounded-lg bg-starlight-gold/20 border border-starlight-gold/40 text-starlight-champagne font-bold text-xs">
+                ${u.nickname}
+              </span>
+            </div>
+          `;
+        } else if (voterHasChosenAny) {
+          return `
+            <div class="p-3.5 glass-card opacity-40 flex items-center justify-between gap-2">
+              <div class="font-mono text-sm text-slate-400 line-through">${slot.label}</div>
+              <span class="text-[11px] text-slate-500">未選</span>
+            </div>
+          `;
+        } else {
+          return `
+            <div class="p-3.5 glass-card flex items-center justify-between gap-2">
+              <div class="font-mono text-sm text-white">${slot.label}</div>
+              <span class="text-[11px] text-slate-400">${voterUser.nickname} (尚未選擇)</span>
+            </div>
+          `;
+        }
+      }).join('');
 
       const thuSlots = TIME_SLOTS.filter(s => s.dayGroup === 'THU');
       document.getElementById('thursdaySlotsList').innerHTML = thuSlots.map(slot => {

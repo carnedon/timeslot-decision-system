@@ -827,6 +827,7 @@
       '115605506': {
         studentId: '115605506',
         nickname: '北斗七星潭',
+        realName: '邱宣綺',
         constellation: 'Ursa Major // 大熊座七星',
         role: 'voter',
         cluster: 'MON_SOLO_1', // Independent pair of slots
@@ -837,6 +838,7 @@
       '115605003': {
         studentId: '115605003',
         nickname: 'Albireo 天鵝座β',
+        realName: '黃朗峰',
         constellation: 'Cygnus β // 輦道增七雙星',
         role: 'voter',
         cluster: 'MON_SOLO_2', // Independent slots (Mon + Wed + Tue option)
@@ -847,6 +849,7 @@
       '115602535': {
         studentId: '115602535',
         nickname: '神聖彗星',
+        realName: '黃紹喆',
         constellation: 'Comet Halley // 聖潔長尾彗星',
         role: 'voter',
         cluster: 'THU_OVERLAP',
@@ -855,6 +858,7 @@
       '115601006': {
         studentId: '115601006',
         nickname: '非洲之心宿二',
+        realName: '陳宇洋',
         constellation: 'Antares α Sco // 天蠍座阿爾法紅超巨星',
         role: 'voter',
         cluster: 'THU_OVERLAP',
@@ -863,6 +867,7 @@
       '115602511': {
         studentId: '115602511',
         nickname: 'Are You Sirus',
+        realName: '李穎瀅',
         constellation: 'Sirius α CMa // 大犬座天狼星',
         role: 'voter',
         cluster: 'THU_OVERLAP',
@@ -871,6 +876,7 @@
       '115605512': {
         studentId: '115605512',
         nickname: 'Pillars of Creation',
+        realName: '張新樂',
         constellation: 'Eagle Nebula M16 // 創世之柱星雲',
         role: 'voter',
         cluster: 'THU_OVERLAP',
@@ -1532,6 +1538,10 @@
       const s = getSlotById(slotId);
       return s ? `${s.dateStr} ${s.shortTime}` : slotId;
     }
+    function getResultDisplayName(u) {
+      if (!u) return '--';
+      return u.realName ? `${u.nickname} (${u.realName})` : u.nickname;
+    }
 
     // =========================================================================
     // 5. LOGIN, LOGOUT & NAVIGATION WORKFLOW
@@ -2003,7 +2013,7 @@
             <div class="p-3.5 glass-card border-emerald-400/40 flex items-center justify-between gap-2">
               <div class="font-mono text-sm font-bold text-white">${slot.label}</div>
               <span class="px-3 py-1 rounded-lg bg-starlight-gold/20 border border-starlight-gold/40 text-starlight-champagne font-bold text-xs">
-                ${u.nickname}
+                ${getResultDisplayName(u)}
               </span>
             </div>
           `;
@@ -2018,7 +2028,7 @@
           return `
             <div class="p-3.5 glass-card flex items-center justify-between gap-2">
               <div class="font-mono text-sm text-white">${slot.label}</div>
-              <span class="text-[11px] text-slate-400">${voterUser.nickname} (尚未選擇)</span>
+              <span class="text-[11px] text-slate-400">${getResultDisplayName(voterUser)} (尚未選擇)</span>
             </div>
           `;
         }
@@ -2035,7 +2045,7 @@
             <div class="p-3.5 glass-card border-sky-400/50 flex items-center justify-between gap-2">
               <div class="font-mono text-sm font-bold text-white">${slot.label}</div>
               <span class="px-3 py-1 rounded-lg bg-sky-500/20 border border-sky-400/40 text-sky-200 font-bold text-xs">
-                ${u.nickname}
+                ${getResultDisplayName(u)}
               </span>
             </div>
           `;
@@ -2050,7 +2060,7 @@
           return `
             <div class="p-3 glass-card flex items-center justify-between gap-2">
               <div class="font-mono text-xs sm:text-sm text-white">${slot.label}</div>
-              <span class="text-[11px] text-sky-300/80">開放選星期一者選用</span>
+              <span class="text-[11px] text-sky-300/80">開放 邱宣綺、黃朗峰 選用</span>
             </div>
           `;
         }
@@ -2070,7 +2080,7 @@
             <div class="p-3.5 glass-card border-indigo-400/50 flex items-center justify-between gap-2">
               <div class="font-mono text-sm font-bold text-white">${slot.label}</div>
               <span class="px-3 py-1 rounded-lg bg-starlight-gold/20 border border-starlight-gold/40 text-starlight-champagne font-bold text-xs">
-                ${u.nickname}
+                ${getResultDisplayName(u)}
               </span>
             </div>
           `;
@@ -2085,7 +2095,7 @@
           return `
             <div class="p-3.5 glass-card flex items-center justify-between gap-2">
               <div class="font-mono text-sm text-white">${slot.label}</div>
-              <span class="text-[11px] text-slate-400">${voterUser.nickname} (尚未選擇)</span>
+              <span class="text-[11px] text-slate-400">${getResultDisplayName(voterUser)} (尚未選擇)</span>
             </div>
           `;
         }
@@ -2093,7 +2103,7 @@
 
       const thuSlots = TIME_SLOTS.filter(s => s.dayGroup === 'THU');
       document.getElementById('thursdaySlotsList').innerHTML = thuSlots.map(slot => {
-        const voterNames = slot.voters.map(id => USERS[id].nickname).join('、');
+        const voterNames = slot.voters.map(id => getResultDisplayName(USERS[id])).join('、');
 
         if (alloc.isThuRevealed) {
           const assigned = alloc.finalSlotToUser[slot.id];
@@ -2106,7 +2116,7 @@
                   <div class="text-[11px] font-mono text-starlight-gold">🎲 點數：${assigned.d30Roll || '--'}</div>
                 </div>
                 <span class="px-3 py-1 rounded-lg bg-starlight-gold/25 border border-starlight-gold text-white font-bold text-xs">
-                  ${u.nickname}
+                  ${getResultDisplayName(u)}
                 </span>
               </div>
             `;
@@ -2147,7 +2157,7 @@
       } else {
         logStatusTag.textContent = '已揭曉';
         logContent.innerHTML = `
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
             ${THU_CLUSTER_IDS.map(id => {
               const rec = appState.selections[id];
               const u = USERS[id];
@@ -2155,7 +2165,7 @@
               return `
                 <div class="glass-card p-2.5 flex items-center justify-between gap-2">
                   <div class="min-w-0">
-                    <div class="text-xs font-bold text-white truncate">${u.nickname}</div>
+                    <div class="text-xs font-bold text-white truncate">${getResultDisplayName(u)}</div>
                     <div class="text-[10px] text-emerald-300 font-mono">${finalSlot ? getSlotShort(finalSlot.slotId) : '--'}</div>
                   </div>
                   <div class="text-sm font-black font-mono gold-gradient-text shrink-0">🎲 ${rec?.d30Roll ?? '--'}</div>
@@ -2190,7 +2200,7 @@
           <tr class="hover:bg-white/[0.03]">
             <td class="py-2.5 px-3">
               <div class="font-mono text-[10px] text-starlight-gold">${u.studentId}</div>
-              <div class="font-bold text-white">${u.nickname}</div>
+              <div class="font-bold text-white">${getResultDisplayName(u)}</div>
             </td>
             <td class="py-2.5 px-3 font-mono text-[11px] text-slate-400">${votedLabels}</td>
             <td class="py-2.5 px-3 text-[11px]">
